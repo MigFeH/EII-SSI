@@ -1,0 +1,54 @@
+Examen práctico Junio 2024:
+
+Para responder el siguiente examen, debes contestar a cada pregunta con capturas de pantalla de las salidas de los comandos y texto que demuestren que has hecho cada ejercicio pedido, de forma que lo que entregues muestre claramente que has hecho el trabajo. Se recomienda usar Word (instalado en el Laboratorio). Debes entregar un único fichero PDF en la tarea habilitada para ello en el campus virtual.
+
+(diagrama de red con máquinas: kali_exam, ubuntu_exam, ubuntu_gtfo)
+
+
+---
+
+1) Dado el siguiente escaneo de Censys sobre la red de nuestra Universidad, describa qué haría para comprobar la seguridad de la Universidad con esta información, mencionando los comandos que usaría para ello (no es necesario incluir los parámetros, solo para qué los usaría) (1,5 puntos)
+
+
+---
+
+2) Rick te ha enviado una foto (pickle.jpg) con un mensaje oculto. Sabemos que Rick suele usar como contraseña su fecha de nacimiento y que la suele usar para todo. Además, sabemos que Rick nació el 1 de
+
+año 1980, que la contraseña suele ser el día seguido de las tres primeras letras del mes en inglés y con la primera en mayúscula y seguido del año, todo ello sin separación (por ejemplo "1Nov1980"), y que tiene una cuenta de usuario en el contenedor Kali. Averigua la contraseña de Rick, extrae el mensaje oculto de la imagen y contéstale encriptando tu mensaje de contestación usando criptografía asimétrica (en la carpeta de material se encuentran las claves de Rick y del usuario de la máquina virtual). Se pide captura de pantalla de los comandos que utilizaste, y su salida. (1,5 puntos)
+
+
+---
+
+3) La máquina virtual entregada tiene instalada la herramienta SCAP Compliance Checker vista en prácticas. Haga lo necesario para obtener un informe de auditoría de la misma con el nivel de cumplimiento MAC 1 Classified. Entregue una captura del informe donde se vea claramente la puntuación y un resumen de los controles que la máquina satisface o no satisface. (1,5 puntos)
+
+
+---
+
+4) En el contenedor exam_ubuntu hay un servidor web Apache con mod_security2 instalado. Con ello se pide:
+
+a. Probar solamente que el motor del mod_security2 funciona generando una nueva regla a mano al WAF que bloquee el uso del valor del parámetro "rick" en una URL sea en un GET o POST. El mensaje que se lanza se llama "pickle".
+b. Registrar el incidente con el siguiente mensaje: "Me la quieren liar"
+c. Captura de pantalla de la configuración necesaria para añadir la regla.
+d. Captura de pantalla de cómo se dispara la regla intencionadamente y su resultado.
+e. Captura de pantalla del log en el momento en el que se disparó.
+
+
+---
+
+5) Este ejercicio consiste en hacer dos operaciones con el nmap instalado en la máquina virtual del examen (2 puntos)
+
+Un escaneo que muestre las máquinas que están “vivas” en la red 192.168.66.0/24 que contiene los contenedores que forman parte de la infraestructura entregada en el examen.
+
+Usar la biblioteca de scripts NSE de nmap para localizar rutas comunes en una web alojada en alguno de los contenedores que forman parte de la infraestructura (debes localizar cuál es). Usa para ello la documentación de la carpeta /exam_materials del Escritorio de la MV (En /home/ssiexam/Desktop/exam_materials/nse_scripts/nmap_org/nseodcr_scripts/ hay una copia de la documentación de estos scripts).
+
+
+
+---
+
+6) En el contenedor ubuntu_gtfo queremos añadir un usuario al sistema que sea miembro de sudoers y queramos poder acceder a él. El nombre de usuario debe ser de tu UO y la contraseña debe ser JunioU0xxxxx (siendo U0xxxx tu UO). Debes seguir las siguientes instrucciones (2 puntos)
+
+a. Este sistema usa el /etc/shadow para bloquear el acceso de todos los usuarios, por lo que debes hacer lo mismo y no poner la contraseña en el /etc/passwd.
+b. Debes usar algún programa GTFObins para lograrlo.
+c. Una vez que lo hayas hecho, debes hacer capturas que demuestren que lo has conseguido.
+d. Tienes una copia de la documentación de los GTFObins en
+/home/ssiexam/Desktop/exam_materials/GTFObins/gtfobins.github.io/index.html

